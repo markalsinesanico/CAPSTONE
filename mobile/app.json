@@ -1,0 +1,39 @@
+{
+  "expo": {
+    "name": "reservation",
+    "slug": "reservation",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/logo.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/images/logo.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "edgeToEdgeEnabled": true,
+      "statusBarHidden": true,
+      "navigationBarHidden": true,
+      "softwareKeyboardLayoutMode": "pan",
+      "systemNavigationBarHidden": true,
+      "systemNavigationBarStyle": "light-content",
+      "systemNavigationBarColor": "transparent",
+      "immersive": true
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router"
+    ]
+  }
+}
