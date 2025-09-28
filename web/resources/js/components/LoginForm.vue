@@ -13,42 +13,52 @@
   </template>
   
   <script>
-  export default {
-    data() {
-      return {
-        email: '',
-        password: '',
-        error: ''
-      };
-    },
-    methods: {
-      async handleLogin() {
-        try {
-          const response = await axios.post('/api/login', {
-            email: this.email,
-            password: this.password
-          });
-          
-          localStorage.setItem('token', response.data.token);
-          localStorage.setItem('user', JSON.stringify(response.data.user));
-          
-          // Set axios default header for future requests
-          axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
-          
-          this.$router.push('/dashboard');
-        } catch (err) {
-          if (err.response && err.response.status === 403) {
-            this.error = 'Only admin can log in';
-          } else if (err.response && err.response.status === 401) {
-            this.error = 'Invalid email or password';
-          } else {
-            this.error = 'Login failed. Please try again.';
-          }
+import axios from "axios";
+
+export default {
+  data() {
+    return {
+      email: '',
+      password: '',
+      error: ''
+    };
+  },
+  methods: {
+    async handleLogin() {
+      try {
+        const response = await axios.post('/api/login', {
+          email: this.email,
+          password: this.password
+        });
+
+        const user = response.data.user;
+
+        // ✅ Only allow admin role
+        if (user.role !== 'admin') {
+          this.error = 'Only admins are allowed to log in.';
+          return;
+        }
+
+        localStorage.setItem('token', response.data.token);
+        localStorage.setItem('user', JSON.stringify(user));
+
+        axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
+
+        this.$router.push('/dashboard');
+      } catch (err) {
+        if (err.response && err.response.status === 403) {
+          this.error = 'Only admins are allowed to log in.';
+        } else if (err.response && err.response.status === 401) {
+          this.error = 'Invalid email or password';
+        } else {
+          this.error = 'Login failed. Please try again.';
         }
       }
     }
-  };
-  </script>
+  }
+};
+</script>
+
   
   <style scoped>
   .login-container {

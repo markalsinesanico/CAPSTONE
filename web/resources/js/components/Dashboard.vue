@@ -88,7 +88,7 @@
                 gridRow: event.rowStart + ' / span ' + event.rowSpan,
                 background: event.color
               }"
-              @click="showDetails(event.name, event.idnum, event.year, event.dept, event.course, event.startTime + ' - ' + event.endTime, event.startTime, event.endTime, event.type || 'N/A', event.account || 'N/A')"
+              @click="showDetails(event.name, event.idnum, event.year, event.dept, event.course, event.startTime + ' - ' + event.endTime, event.startTime, event.endTime, event.type || 'N/A', event.account || 'N/A', event.id, event.source)"
             >
               <strong>{{ event.name }}</strong>
               <div>{{ formatTime(event.startTime) }} - {{ formatTime(event.endTime) }}</div>
@@ -109,15 +109,17 @@
         <table class="event-details-table">
           <tr><td><strong>Name:</strong></td><td>{{ modalData.name }}</td></tr>
           <tr><td><strong>ID number:</strong></td><td>{{ modalData.idnum }}</td></tr>
-          <tr><td><strong>Type:</strong></td><td>{{ modalData.type }}</td></tr>
           <tr><td><strong>Year:</strong></td><td>{{ modalData.year }}</td></tr>
           <tr><td><strong>Department:</strong></td><td>{{ modalData.dept }}</td></tr>
           <tr><td><strong>Course:</strong></td><td>{{ modalData.course }}</td></tr>
           <tr><td><strong>Date:</strong></td><td>{{ modalData.date }}</td></tr>
           <tr><td><strong>IN:</strong></td><td>{{ modalData.in }}</td></tr>
           <tr><td><strong>OUT:</strong></td><td>{{ modalData.out }}</td></tr>
-          <tr><td><strong>Account:</strong></td><td>{{ modalData.account }}</td></tr>
         </table>
+        <div class="modal-actions">
+          <button class="return-btn" @click="markAsReturned" v-if="!modalData.returned">Return Item</button>
+          <button class="close-btn" @click="closeModal">Close</button>
+        </div>
       </div>
     </div>
 
@@ -158,14 +160,18 @@ export default {
         date: '',
         in: '',
         out: '',
-        account: ''
+        account: '',
+        id: null,
+        source: null,
+        returned: false
       },
       availableItems: [],
       timeSlots: [
         "7:00 AM", "7:30 AM", "8:00 AM", "8:30 AM", "9:00 AM", "9:30 AM",
         "10:00 AM", "10:30 AM", "11:00 AM", "11:30 AM", "12:00 PM", "12:30 PM",
         "1:00 PM", "1:30 PM", "2:00 PM", "2:30 PM", "3:00 PM", "3:30 PM",
-        "4:00 PM", "4:30 PM", "5:00 PM", "5:30 PM", "6:00 PM", "6:30 PM"
+        "4:00 PM", "4:30 PM", "5:00 PM", "5:30 PM", "6:00 PM", "6:30 PM",
+        "7:00 PM", "7:30 PM", "8:00 PM", "8:30 PM", "9:00 PM", "9:30 PM", "10:00 PM"
       ],
       borrowers: [],
       roomRequests: [],
@@ -183,31 +189,39 @@ export default {
     processedEvents() {
       let eventsToMap = [];
       if (this.sortBy === 'ROOMS') {
-        // Map room requests to events
-        eventsToMap = this.roomRequests.map(r => ({
-          name: r.name,
-          idnum: r.borrower_id,
-          year: r.year,
-          dept: r.department,
-          course: r.course,
-          startTime: `${r.date} ${r.time_in}`,
-          endTime: `${r.date} ${r.time_out}`,
-          item: r.room?.name || 'Room',
-          color: '#007bff' // blue for rooms
-        }));
+        // Map room requests to events (include id and source) - filter out returned items
+        eventsToMap = this.roomRequests
+          .filter(r => !r.returned)
+          .map(r => ({
+            id: r.id,
+            name: r.name,
+            idnum: r.borrower_id,
+            year: r.year,
+            dept: r.department,
+            course: r.course,
+            startTime: `${r.date} ${r.time_in}`,
+            endTime: `${r.date} ${r.time_out}`,
+            item: r.room?.name || 'Room',
+            color: '#007bff', // blue for rooms
+            source: 'room'
+          }));
       } else {
-        // Map equipment borrowers to events
-        eventsToMap = this.borrowers.map(b => ({
-          name: b.name,
-          idnum: b.borrower_id,
-          year: b.year,
-          dept: b.department,
-          course: b.course,
-          startTime: `${b.date} ${b.time_in}`,
-          endTime: `${b.date} ${b.time_out}`,
-          item: b.item?.name || 'N/A',
-          color: '#43a047' // green for equipment
-        }));
+        // Map equipment borrowers to events (include id and source) - filter out returned items
+        eventsToMap = this.borrowers
+          .filter(b => !b.returned)
+          .map(b => ({
+            id: b.id,
+            name: b.name,
+            idnum: b.borrower_id,
+            year: b.year,
+            dept: b.department,
+            course: b.course,
+            startTime: `${b.date} ${b.time_in}`,
+            endTime: `${b.date} ${b.time_out}`,
+            item: b.item?.name || 'N/A',
+            color: '#43a047', // green for equipment
+            source: 'item'
+          }));
       }
 
       // Only for the selected date
@@ -315,17 +329,97 @@ export default {
       hour = hour % 12 || 12;
       return `${hour}:${minute.toString().padStart(2, '0')} ${ampm}`;
     },
-    showDetails(name, idnum, year, dept, course, datetime, startTime, endTime, type = 'N/A', account = 'N/A') {
-      // Extract date, in, out from startTime/endTime
-      const date = startTime.split(' ')[0];
-      const inTime = startTime.split(' ')[1];
-      const outTime = endTime.split(' ')[1];
-      console.log('showDetails called', { name, idnum, year, dept, course, datetime, startTime, endTime, type, account });
-      this.modalData = { name, idnum, type, year, dept, course, date, in: inTime, out: outTime, account };
+    showDetails(name, idnum, year, dept, course, datetime, startTime, endTime, type = 'N/A', account = 'N/A', id = null, source = null) {
+      // Extract and normalize date and times
+      const extractDatePart = (s) => {
+        if (!s) return '';
+        const m = s.match(/\d{4}-\d{2}-\d{2}/);
+        return m ? m[0] : (s.split(' ')[0] || s);
+      };
+
+      const extractTimePart = (s) => {
+        if (!s) return '';
+        // match HH:MM or HH:MM:SS
+        const m = s.match(/(\d{1,2}:\d{2})(:\d{2})?/);
+        if (m) return m[1];
+        // fallback for T08:00:00 style
+        const m2 = s.match(/T(\d{2}:\d{2})/);
+        return m2 ? m2[1] : '';
+      };
+
+      const toAmPm = (hhmm) => {
+        if (!hhmm) return '-';
+        const parts = hhmm.split(':');
+        if (parts.length < 2) return hhmm;
+        let hour = parseInt(parts[0], 10);
+        const minute = parts[1];
+        const suffix = hour >= 12 ? 'PM' : 'AM';
+        hour = hour % 12 || 12;
+        return `${hour}:${minute} ${suffix}`;
+      };
+
+      const rawDate = startTime ? startTime.split(' ')[0] : '';
+      const rawIn = startTime ? startTime.split(' ')[1] || '' : '';
+      const rawOut = endTime ? endTime.split(' ')[1] || '' : '';
+
+      const date = extractDatePart(rawDate);
+      const inTime = toAmPm(extractTimePart(rawIn));
+      const outTime = toAmPm(extractTimePart(rawOut));
+
+      console.log('showDetails called', { name, idnum, year, dept, course, datetime, startTime, endTime, type, account, id, source });
+      
+      // Find the original item to get the returned status
+      let returned = false;
+      if (source === 'room') {
+        const roomRequest = this.roomRequests.find(r => r.id === id);
+        returned = roomRequest ? roomRequest.returned : false;
+      } else {
+        const borrower = this.borrowers.find(b => b.id === id);
+        returned = borrower ? borrower.returned : false;
+      }
+      
+      this.modalData = { name, idnum, type, year, dept, course, date, in: inTime, out: outTime, account, id, source, returned };
       this.modalVisible = true;
     },
     closeModal() {
       this.modalVisible = false;
+    },
+    async markAsReturned() {
+      console.log('markAsReturned called with modalData:', this.modalData);
+      
+      if (!this.modalData.id || !this.modalData.source) {
+        console.error('Missing item information:', { id: this.modalData.id, source: this.modalData.source });
+        alert('Error: Missing item information');
+        return;
+      }
+
+      try {
+        const endpoint = this.modalData.source === 'room' 
+          ? `/api/room-requests/${this.modalData.id}/return`
+          : `/api/requests/${this.modalData.id}/return`;
+        
+        await axios.patch(endpoint);
+        
+        // Update the local data
+        if (this.modalData.source === 'room') {
+          const roomRequest = this.roomRequests.find(r => r.id === this.modalData.id);
+          if (roomRequest) {
+            roomRequest.returned = true;
+          }
+        } else {
+          const borrower = this.borrowers.find(b => b.id === this.modalData.id);
+          if (borrower) {
+            borrower.returned = true;
+          }
+        }
+        
+        this.modalData.returned = true;
+        alert('Item marked as returned successfully!');
+        this.closeModal();
+      } catch (error) {
+        console.error('Error marking item as returned:', error);
+        alert('Failed to mark item as returned. Please try again.');
+      }
     },
     updateAvailableItems() {
       this.availableItems = [
@@ -817,6 +911,15 @@ export default {
 }
 .reject-btn {
   background: #e74c3c;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  padding: 8px 14px;
+  cursor: pointer;
+  font-weight: bold;
+}
+.return-btn {
+  background: #f39c12;
   color: #fff;
   border: none;
   border-radius: 5px;

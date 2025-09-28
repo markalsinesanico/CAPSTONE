@@ -20,6 +20,7 @@ class RequestItem extends Model
         'item_id',
         'status', // add this
         'email',
+        'returned',
     ];
 
     public function item()

@@ -68,6 +68,12 @@ class RoomRequestController extends Controller
         return $roomRequest->load('room');
     }
 
+    public function markAsReturned(RoomRequest $roomRequest)
+    {
+        $roomRequest->update(['returned' => true]);
+        return response()->json($roomRequest->load('room'));
+    }
+
     public function destroy(RoomRequest $roomRequest)
     {
    $roomRequest->delete();

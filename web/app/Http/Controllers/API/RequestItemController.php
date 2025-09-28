@@ -75,6 +75,12 @@ class RequestItemController extends Controller
         return response()->json($requestItem);
     }
 
+    public function markAsReturned(RequestItem $requestItem)
+    {
+        $requestItem->update(['returned' => true]);
+        return response()->json($requestItem->load('item'));
+    }
+
     // Use id param instead of implicit model binding to make delete more robust
     public function destroy($id)
     {

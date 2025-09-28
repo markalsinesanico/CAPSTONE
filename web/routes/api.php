@@ -45,6 +45,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('room-requests',  [RoomRequestController::class, 'index']);
     Route::post('room-requests', [RoomRequestController::class, 'store']);
     Route::patch('room-requests/{roomRequest}', [RoomRequestController::class, 'update']);
+    Route::patch('room-requests/{roomRequest}/return', [RoomRequestController::class, 'markAsReturned']);
     Route::delete('room-requests/{roomRequest}', [RoomRequestController::class, 'destroy']);
 });
 
@@ -53,5 +54,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/requests', [RequestItemController::class, 'index']);
     Route::post('/requests', [RequestItemController::class, 'store']);
     Route::put('/requests/{requestItem}', [RequestItemController::class, 'update']);
+    Route::patch('/requests/{requestItem}/return', [RequestItemController::class, 'markAsReturned']);
     Route::delete('/requests/{requestItem}', [RequestItemController::class, 'destroy']);
 });

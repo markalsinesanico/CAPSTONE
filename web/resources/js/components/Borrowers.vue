@@ -219,8 +219,8 @@
           <div class="qr-info">
             <p><strong>Scan this QR code to view details</strong></p>
             <div class="qr-data">
-              <small>{{ qrCodeData }}</small>
-            </div>
+                  <small style="white-space: pre-wrap">{{ qrCodeData }}</small>
+                </div>
           </div>
         </div>
         
@@ -575,9 +575,9 @@ export default {
           timestamp: new Date().toISOString(),
           type: 'borrower_receipt'
         };
-        
-        this.qrCodeData = JSON.stringify(qrData);
-        this.qrCodeImage = await QRCode.toDataURL(this.qrCodeData, {
+        // Keep QR encoding as JSON so scanners get structured data
+        const qrJson = JSON.stringify(qrData);
+        this.qrCodeImage = await QRCode.toDataURL(qrJson, {
           width: 200,
           margin: 2,
           color: {
@@ -585,6 +585,9 @@ export default {
             light: '#FFFFFF'
           }
         });
+        // Show a human-readable receipt in the modal (preserve JSON in the QR image)
+        const displayText = `Name: ${borrower.name}\nID number: ${borrower.borrower_id || borrower.id || ''}\nYear: ${borrower.year || ''}\nDepartment: ${borrower.department || ''}\nCourse: ${borrower.course || ''}\nDate: ${borrower.date || ''}\nIN: ${this.formatTime(borrower.time_in)}\nOUT: ${this.formatTime(borrower.time_out)}`;
+        this.qrCodeData = displayText;
         this.showQRModal = true;
       } catch (error) {
         console.error('Error generating QR code:', error);

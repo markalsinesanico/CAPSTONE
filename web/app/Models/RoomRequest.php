@@ -21,6 +21,7 @@ class RoomRequest extends Model
         'room_id',
         'status',
         'email',
+        'returned',
     ];
 
     protected $casts = [
