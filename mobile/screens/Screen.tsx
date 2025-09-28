@@ -13,16 +13,15 @@ import {
   ActivityIndicator,
   SafeAreaView,
   Alert,
-  StatusBar,
 } from "react-native";
-import { useImmersiveMode } from '../src/useImmersiveMode';
+import { useImmersiveMode } from "../src/useImmersiveMode";
 import Modal from "react-native-modal";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { FontAwesome } from "@expo/vector-icons";
 import Header from "../navigation/Header";
 import Footer from "../navigation/Footer";
 import { Picker } from "@react-native-picker/picker";
-import API from '../src/api';
+import API from "../src/api";
 
 // ----------- Interfaces / Types ----------
 interface Item {
@@ -66,12 +65,12 @@ const DEPT_OPTIONS = [
 
 const COURSE_OPTIONS: Record<string, { label: string; value: string }[]> = {
   CEIT: [
-    { label: "Bachelor of Science in Electronics(BSECE)", value: "BSECE" },
-    { label: "Bachelor of Science in Electrical(BSEE)", value: "BSEE" },
-    { label: "Bachelor of Science in Computer(BSCoE)", value: "BSCoE" },
-    { label: "Bachelor of Science in (BSIS)", value: "BSIS" },
-    { label: "Bachelor of Science in (BSInfoTech)", value: "BSInfoTech" },
-    { label: "Bachelor of Science in (BSCS)", value: "BSCS" },
+    { label: "BSECE", value: "BSECE" },
+    { label: "BSEE", value: "BSEE" },
+    { label: "BSCoE", value: "BSCoE" },
+    { label: "BSIS", value: "BSIS" },
+    { label: "BSInfoTech", value: "BSInfoTech" },
+    { label: "BSCS", value: "BSCS" },
   ],
   CTE: [
     { label: "BSED - English", value: "BSED-ENGLISH" },
@@ -83,23 +82,23 @@ const COURSE_OPTIONS: Record<string, { label: string; value: string }[]> = {
     { label: "BTVTED", value: "BTVTED" },
   ],
   COT: [
-    { label: "Bachelor in Electrical (BEET)", value: "BEET" },
-    { label: "Bachelor in Electronics (BEXET)", value: "BEXET" },
-    { label: "Bachelor in Mechanical (BMET)", value: "BMET" },
-    { label: "Mechanical Technology (BMET-MT)", value: "BMET-MT" },
-    { label: "Refrigeration & (BMET-RAC)", value: "BMET-RAC" },
-    { label: "Architectural Drafting (BSIT-ADT)", value: "BSIT-ADT" },
-    { label: "Automotive Technology (BSIT-AT)", value: "BSIT-AT" },
-    { label: "Electrical Technology (BSIT-ELT)", value: "BSIT-ELT" },
-    { label: "Electronics Technology (BSIT-ET)", value: "BSIT-ET" },
-    { label: "Mechanical Technology (BSIT-MT)", value: "BSIT-MT" },
-    { label: "Welding & Fabrication (BSIT-WAF)", value: "BSIT-WAF" },
-    { label: "Heating, Ventilation, (BSIT-HVACR)", value: "BSIT-HVACR" },
+    { label: "BEET", value: "BEET" },
+    { label: "BEXET", value: "BEXET" },
+    { label: "BMET", value: "BMET" },
+    { label: "BMET-MT", value: "BMET-MT" },
+    { label: "BMET-RAC", value: "BMET-RAC" },
+    { label: "BSIT-ADT", value: "BSIT-ADT" },
+    { label: "BSIT-AT", value: "BSIT-AT" },
+    { label: "BSIT-ELT", value: "BSIT-ELT" },
+    { label: "BSIT-ET", value: "BSIT-ET" },
+    { label: "BSIT-MT", value: "BSIT-MT" },
+    { label: "BSIT-WAF", value: "BSIT-WAF" },
+    { label: "BSIT-HVACR", value: "BSIT-HVACR" },
   ],
   CAS: [
-    { label: "Bachelor of Science in(BSES)", value: "BSES" },
-    { label: "Bachelor of Science in (BSMATH)", value: "BSMATH" },
-    { label: "Bachelor of Arts in (BA-EL)", value: "BA-EL" },
+    { label: "BSES", value: "BSES" },
+    { label: "BSMATH", value: "BSMATH" },
+    { label: "BA-EL", value: "BA-EL" },
   ],
 };
 
@@ -107,8 +106,8 @@ const COURSE_OPTIONS: Record<string, { label: string; value: string }[]> = {
 export default function Screen(): JSX.Element {
   const [search, setSearch] = useState<string>("");
   const [isModalVisible, setModalVisible] = useState<boolean>(false);
-const [selectedItemName, setSelectedItemName] = useState<string>("");
-const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
+  const [selectedItemName, setSelectedItemName] = useState<string>("");
+  const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
   const [form, setForm] = useState<FormState>({
     fullName: "",
     idNumber: "",
@@ -129,45 +128,31 @@ const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
 
-const fetchItems = async () => {
-  try {
-    setLoading(true);
-    const response = await API.get('/items');
-    
-    if (response.status === 401) {
-      // Handle unauthorized
-      console.log('Unauthorized - redirecting to login');
-      // Add your navigation logic here
-      return;
+  const fetchItems = async () => {
+    try {
+      setLoading(true);
+      const response = await API.get("/items");
+      setItems(response.data);
+    } catch (error: any) {
+      console.error("Error fetching items:", error.message);
+      Alert.alert("Error", "Unable to load items.");
+    } finally {
+      setLoading(false);
     }
-    
-    setItems(response.data);
-} catch (error: any) {
-  console.error("Fetch error details:", {
-    message: error.message ?? "Unknown error",
-    name: error.name ?? "No name",
-  });
+  };
 
-  Alert.alert(
-    "Error",
-    "Failed to fetch items. Please check your connection and try again."
-  );
-} finally {
-  setLoading(false);
-}
-};
   useEffect(() => {
     fetchItems();
   }, []);
 
-  // Use immersive mode hook
   useImmersiveMode();
 
- const openRequest = (item: Item) => {
-  setSelectedItemName(item.name);
-  setSelectedItemId(item.id);
-  setModalVisible(true);
-};
+  const openRequest = (item: Item) => {
+    setSelectedItemName(item.name);
+    setSelectedItemId(item.id);
+    setModalVisible(true);
+  };
+
   const handleFormChange = <K extends keyof FormState>(
     key: K,
     val: FormState[K]
@@ -175,37 +160,31 @@ const fetchItems = async () => {
     setForm((s) => ({ ...s, [key]: val }));
   };
 
-  const onDateChange = (_event: any, selectedDate?: Date | undefined) => {
+  const onDateChange = (_: any, selectedDate?: Date) => {
     setShowDatePicker(false);
-    if (selectedDate) {
-      handleFormChange("date", selectedDate);
-    }
+    if (selectedDate) handleFormChange("date", selectedDate);
   };
 
   const onTimeChange =
     (field: "timeIn" | "timeOut") =>
-    (_event: any, selectedDate?: Date | undefined) => {
+    (_: any, selectedDate?: Date) => {
       setShowTimePicker({ field: null, visible: false });
-      if (selectedDate) {
-        handleFormChange(field, selectedDate);
-      }
+      if (selectedDate) handleFormChange(field, selectedDate);
     };
 
   const submit = async () => {
     try {
       if (!selectedItemId) {
-        Alert.alert('Error', 'Please select an item');
+        Alert.alert("Error", "Please select an item");
         return;
       }
 
-      // Format time to HH:mm format
-      const formatTime = (date: Date) => {
-        return date.toLocaleTimeString('en-US', {
+      const formatTime = (date: Date) =>
+        date.toLocaleTimeString("en-US", {
           hour12: false,
-          hour: '2-digit',
-          minute: '2-digit'
+          hour: "2-digit",
+          minute: "2-digit",
         });
-      };
 
       const requestData = {
         name: form.fullName,
@@ -213,48 +192,32 @@ const fetchItems = async () => {
         year: form.year,
         department: form.dept,
         course: form.course,
-        date: form.date?.toISOString().split('T')[0],
+        date: form.date?.toISOString().split("T")[0],
         time_in: form.timeIn ? formatTime(form.timeIn) : null,
         time_out: form.timeOut ? formatTime(form.timeOut) : null,
-        item_id: selectedItemId
+        item_id: selectedItemId,
       };
 
-      // Log the request data for debugging
-      console.log('Submitting request:', requestData);
+      await API.post("/requests", requestData);
 
-      const response = await API.post('/requests', requestData);
-
-      console.log('Response:', response.data);
-
-      Alert.alert('Success', 'Request submitted successfully!');
+      Alert.alert("Success", "Request submitted successfully!");
       setModalVisible(false);
       resetForm();
-
     } catch (error: any) {
-      console.error('Submit error details:', {
-        message: error.message,
-        response: error.response?.data,
-        status: error.response?.status
-      });
-
-      const errorMessage = error.response?.data?.message 
-        || error.response?.data?.error 
-        || 'Failed to submit request';
-        
-      Alert.alert('Error', errorMessage);
+      Alert.alert("Error", "Failed to submit request.");
     }
   };
 
   const resetForm = () => {
     setForm({
-      fullName: '',
-      idNumber: '',
-      year: '',
-      dept: '',
-      course: '',
+      fullName: "",
+      idNumber: "",
+      year: "",
+      dept: "",
+      course: "",
       date: null,
       timeIn: null,
-      timeOut: null
+      timeOut: null,
     });
     setSelectedItemId(null);
   };
@@ -274,17 +237,12 @@ const fetchItems = async () => {
 
       <View style={styles.searchSection}>
         <TextInput
-          placeholder="Search.."
+          placeholder="🔍 Search items..."
           style={styles.searchInput}
           value={search}
           onChangeText={setSearch}
         />
-        <FontAwesome
-          name="bell"
-          size={24}
-          color="white"
-          style={styles.bellIcon}
-        />
+        <FontAwesome name="bell" size={24} color="white" style={styles.bellIcon} />
       </View>
 
       <Text style={styles.sectionTitle}>📦 Available Items</Text>
@@ -306,26 +264,22 @@ const fetchItems = async () => {
             )}
             <View style={{ flex: 1 }}>
               <Text style={styles.itemName}>{item.name}</Text>
-              <Text style={{ fontSize: 12, color: "green" }}>
-                 available
-              </Text>
+              <Text style={styles.itemAvailable}>Available</Text>
               {item.description ? (
-                <Text style={{ fontSize: 11, color: "#555" }}>
-                  {item.description}
-                </Text>
+                <Text style={styles.itemDescription}>{item.description}</Text>
               ) : null}
             </View>
-           <TouchableOpacity
-  style={styles.itemButton}
-  onPress={() => openRequest(item)}
->
-  <Text style={styles.itemButtonText}>Request ITEM</Text>
-</TouchableOpacity>
+            <TouchableOpacity
+              style={styles.itemButton}
+              onPress={() => openRequest(item)}
+            >
+              <Text style={styles.itemButtonText}>Request</Text>
+            </TouchableOpacity>
           </View>
         )}
       />
 
-      {/* Borrow Modal */}
+      {/* Modal */}
       <Modal
         isVisible={isModalVisible}
         onBackdropPress={() => setModalVisible(false)}
@@ -337,14 +291,15 @@ const fetchItems = async () => {
             style={styles.closeBtn}
             onPress={() => setModalVisible(false)}
           >
-            <FontAwesome name="times" size={20} color="#333" />
+            <FontAwesome name="times" size={22} color="#333" />
           </TouchableOpacity>
           <Text style={styles.modalTitle}>Borrowing Request Form</Text>
           <Text style={styles.selectedItem}>{selectedItemName}</Text>
-          <ScrollView>
+
+          <ScrollView showsVerticalScrollIndicator={false}>
             <TextInput
               value={form.fullName}
-              placeholder="Full Name"
+              placeholder=" Full Name"
               style={styles.input}
               onChangeText={(t) => handleFormChange("fullName", t)}
             />
@@ -354,11 +309,12 @@ const fetchItems = async () => {
               style={styles.input}
               onChangeText={(t) => handleFormChange("idNumber", t)}
             />
+
+            {/* Year Picker */}
             <View style={styles.input}>
               <Picker
                 selectedValue={form.year}
                 onValueChange={(v) => handleFormChange("year", v)}
-                dropdownIconColor="#007e3a"
                 style={styles.picker}
               >
                 <Picker.Item label="Select Year Level" value="" />
@@ -368,6 +324,7 @@ const fetchItems = async () => {
               </Picker>
             </View>
 
+            {/* Department Picker */}
             <View style={styles.input}>
               <Picker
                 selectedValue={form.dept}
@@ -375,7 +332,6 @@ const fetchItems = async () => {
                   handleFormChange("dept", v);
                   handleFormChange("course", "");
                 }}
-                dropdownIconColor="#007e3a"
                 style={styles.picker}
               >
                 <Picker.Item label="Select Department" value="" />
@@ -385,29 +341,29 @@ const fetchItems = async () => {
               </Picker>
             </View>
 
+            {/* Course Picker */}
             <View style={styles.input}>
               <Picker
                 enabled={!!form.dept}
                 selectedValue={form.course}
                 onValueChange={(v) => handleFormChange("course", v)}
-                dropdownIconColor="#007e3a"
                 style={styles.picker}
               >
                 <Picker.Item label="Select Course" value="" />
                 {form.dept &&
-                  COURSE_OPTIONS[form.dept] &&
-                  COURSE_OPTIONS[form.dept].map((opt) => (
+                  COURSE_OPTIONS[form.dept]?.map((opt) => (
                     <Picker.Item key={opt.value} label={opt.label} value={opt.value} />
                   ))}
               </Picker>
             </View>
 
+            {/* Date */}
             <TouchableOpacity
               onPress={() => setShowDatePicker(true)}
               style={styles.input}
             >
               <Text style={{ color: form.date ? "#000" : "#888" }}>
-                {form.date ? form.date.toDateString() : "Select Date"}
+                {form.date ? form.date.toDateString() : " Select Date"}
               </Text>
             </TouchableOpacity>
             {showDatePicker && (
@@ -419,17 +375,22 @@ const fetchItems = async () => {
               />
             )}
 
+            {/* Time In */}
             <TouchableOpacity
               style={styles.input}
               onPress={() => setShowTimePicker({ field: "timeIn", visible: true })}
             >
               <Text style={{ color: form.timeIn ? "#000" : "#888" }}>
                 {form.timeIn
-  ? form.timeIn.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
-  : "Select Time In"}
+                  ? form.timeIn.toLocaleTimeString([], {
+                      hour: "numeric",
+                      minute: "2-digit",
+                    })
+                  : " Select Time In"}
               </Text>
             </TouchableOpacity>
 
+            {/* Time Out */}
             <TouchableOpacity
               style={styles.input}
               onPress={() =>
@@ -438,8 +399,11 @@ const fetchItems = async () => {
             >
               <Text style={{ color: form.timeOut ? "#000" : "#888" }}>
                 {form.timeOut
-  ? form.timeOut.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
-  : "Select Time Out"}
+                  ? form.timeOut.toLocaleTimeString([], {
+                      hour: "numeric",
+                      minute: "2-digit",
+                    })
+                  : " Select Time Out"}
               </Text>
             </TouchableOpacity>
 
@@ -456,15 +420,16 @@ const fetchItems = async () => {
               />
             )}
 
+            {/* Buttons */}
             <View style={styles.submitRow}>
               <TouchableOpacity style={styles.submitBtn} onPress={submit}>
-                <Text style={{ color: "white" }}>Submit</Text>
+                <Text style={styles.submitBtnText}>Submit</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => setModalVisible(false)}
                 style={styles.cancelBtn}
               >
-                <Text>Cancel</Text>
+                <Text style={styles.cancelBtnText}> Cancel</Text>
               </TouchableOpacity>
             </View>
           </ScrollView>
@@ -480,7 +445,7 @@ const fetchItems = async () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#bbe0cd",
+    backgroundColor: "#eef7f2",
   },
   searchSection: {
     margin: 15,
@@ -490,8 +455,13 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     backgroundColor: "white",
-    padding: 10,
+    padding: 12,
     borderRadius: 12,
+    fontSize: 14,
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
   },
   bellIcon: {
     marginLeft: 15,
@@ -499,27 +469,28 @@ const styles = StyleSheet.create({
   sectionTitle: {
     marginHorizontal: 15,
     marginBottom: 10,
-    fontSize: 16,
-    fontWeight: "bold",
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#007e3a",
   },
   item: {
     backgroundColor: "white",
     marginHorizontal: 15,
     marginVertical: 7,
-    padding: 10,
+    padding: 15,
     borderRadius: 15,
     flexDirection: "row",
     alignItems: "center",
     shadowColor: "#000",
     shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowRadius: 5,
+    elevation: 4,
   },
   itemImage: {
-    width: 60,
-    height: 60,
-    borderRadius: 8,
-    marginRight: 10,
+    width: 65,
+    height: 65,
+    borderRadius: 10,
+    marginRight: 12,
     resizeMode: "cover",
   },
   noImage: {
@@ -530,72 +501,127 @@ const styles = StyleSheet.create({
   itemName: {
     fontSize: 16,
     fontWeight: "600",
+    marginBottom: 3,
+  },
+  itemAvailable: {
+    fontSize: 12,
+    color: "green",
+    fontWeight: "500",
+  },
+  itemDescription: {
+    fontSize: 11,
+    color: "#555",
+    marginTop: 3,
   },
   itemButton: {
     backgroundColor: "#00a651",
     paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 20,
+    paddingHorizontal: 14,
+    borderRadius: 25,
+    shadowColor: "#000",
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
   },
   itemButtonText: {
     color: "white",
-    fontSize: 12,
+    fontSize: 13,
+    fontWeight: "600",
   },
   modal: {
     backgroundColor: "white",
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 20,
     maxHeight: "90%",
+    shadowColor: "#000",
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 5,
   },
   closeBtn: {
     position: "absolute",
-    top: 10,
-    right: 10,
+    top: 12,
+    right: 12,
     zIndex: 1,
   },
   modalTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
+    fontSize: 20,
+    fontWeight: "700",
     marginTop: 20,
     textAlign: "center",
+    color: "#333",
   },
   selectedItem: {
     textAlign: "center",
     marginVertical: 10,
-    fontWeight: "bold",
+    fontWeight: "600",
     color: "#007e3a",
     fontSize: 16,
   },
-  input: {
-    backgroundColor: "#f1f1f1",
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 10,
-  },
+ label: {
+  fontWeight: "600",
+  color: "#007e3a",
+  fontSize: 16,
+  marginBottom: 6,
+  flexWrap: "wrap",      // ✅ allow wrapping if text is long
+  lineHeight: 22,        // ✅ better spacing between lines
+},
+
+input: {
+  backgroundColor: "#f9f9f9",
+  borderRadius: 12,
+  paddingVertical: 14,
+  paddingHorizontal: 16,
+  marginBottom: 14,
+  shadowColor: "#000",
+  shadowOpacity: 0.05,
+  shadowRadius: 3,
+  elevation: 2,
+  fontSize: 16,          // ✅ text more readable
+  lineHeight: 22,        // ✅ prevent clipping inside
+  minHeight: 50,         // ✅ avoid text cutoff
+},
+
+picker: {
+  height: 55,            // ✅ taller picker to display full text
+  color: "#333",
+  fontSize: 16,
+},
+
   submitRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginTop: 15,
+    marginTop: 18,
   },
   submitBtn: {
     flex: 1,
     backgroundColor: "#00a651",
-    padding: 12,
-    borderRadius: 10,
+    padding: 14,
+    borderRadius: 25,
     alignItems: "center",
-    marginRight: 5,
+    marginRight: 8,
+    shadowColor: "#000",
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  submitBtnText: {
+    color: "white",
+    fontSize: 15,
+    fontWeight: "600",
   },
   cancelBtn: {
     flex: 1,
-    padding: 12,
-    borderRadius: 10,
+    padding: 14,
+    borderRadius: 25,
     backgroundColor: "#ddd",
     alignItems: "center",
-    marginLeft: 5,
+    marginLeft: 8,
   },
-  picker: {
-    height: 45,
+  cancelBtnText: {
     color: "#333",
+    fontSize: 15,
+    fontWeight: "500",
   },
   center: {
     flex: 1,
