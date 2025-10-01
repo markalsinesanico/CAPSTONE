@@ -68,15 +68,32 @@ class RoomRequestController extends Controller
         return $roomRequest->load('room');
     }
 
-    public function markAsReturned(RoomRequest $roomRequest)
-    {
-        $roomRequest->update(['returned' => true]);
-        return response()->json($roomRequest->load('room'));
-    }
-
     public function destroy(RoomRequest $roomRequest)
     {
    $roomRequest->delete();
     return response()->json(['message' => 'Room request deleted successfully']);
 }
+
+    /**
+     * Mark a room request as returned
+     */
+    public function return($id)
+    {
+        try {
+            $roomRequest = RoomRequest::findOrFail($id);
+            $roomRequest->update(['returned' => true]);
+            
+            // Log the update for debugging
+            \Illuminate\Support\Facades\Log::info('Room marked as returned', [
+                'id' => $id,
+                'returned' => $roomRequest->returned,
+                'updated_at' => $roomRequest->updated_at
+            ]);
+            
+            return response()->json(['message' => 'Room marked as returned', 'id' => $id, 'returned' => $roomRequest->returned]);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Failed to mark room as returned', ['error' => $e->getMessage(), 'id' => $id]);
+            return response()->json(['message' => 'Failed to mark room as returned', 'error' => $e->getMessage()], 500);
+        }
+    }
 }

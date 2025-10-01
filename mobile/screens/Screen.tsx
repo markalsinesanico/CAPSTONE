@@ -13,6 +13,9 @@ import {
   ActivityIndicator,
   SafeAreaView,
   Alert,
+  ImageBackground,
+  Dimensions,
+  Animated,
 } from "react-native";
 import { useImmersiveMode } from "../src/useImmersiveMode";
 import Modal from "react-native-modal";
@@ -22,6 +25,10 @@ import Header from "../navigation/Header";
 import Footer from "../navigation/Footer";
 import { Picker } from "@react-native-picker/picker";
 import API from "../src/api";
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { LinearGradient } from 'expo-linear-gradient';
+
+const { width, height } = Dimensions.get('window');
 
 // ----------- Interfaces / Types ----------
 interface Item {
@@ -128,6 +135,7 @@ export default function Screen(): JSX.Element {
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
 
+
   const fetchItems = async () => {
     try {
       setLoading(true);
@@ -151,6 +159,11 @@ export default function Screen(): JSX.Element {
     setSelectedItemName(item.name);
     setSelectedItemId(item.id);
     setModalVisible(true);
+  };
+
+  const closeModal = () => {
+    setModalVisible(false);
+    resetForm();
   };
 
   const handleFormChange = <K extends keyof FormState>(
@@ -179,6 +192,9 @@ export default function Screen(): JSX.Element {
         return;
       }
 
+      // Get user email from storage
+      const userEmail = await AsyncStorage.getItem('email');
+
       const formatTime = (date: Date) =>
         date.toLocaleTimeString("en-US", {
           hour12: false,
@@ -193,10 +209,13 @@ export default function Screen(): JSX.Element {
         department: form.dept,
         course: form.course,
         date: form.date?.toISOString().split("T")[0],
-        time_in: form.timeIn ? formatTime(form.timeIn) : null,
-        time_out: form.timeOut ? formatTime(form.timeOut) : null,
+        time_in: form.timeIn ? formatTime(form.timeIn) : "",
+        time_out: form.timeOut ? formatTime(form.timeOut) : "",
         item_id: selectedItemId,
+        email: userEmail || "", // Include user email, default to empty string
       };
+
+      console.log('Sending request data:', requestData);
 
       await API.post("/requests", requestData);
 
@@ -204,7 +223,8 @@ export default function Screen(): JSX.Element {
       setModalVisible(false);
       resetForm();
     } catch (error: any) {
-      Alert.alert("Error", "Failed to submit request.");
+      console.error("Error submitting request:", error);
+      Alert.alert("Error", "Failed to submit request. Please try again.");
     }
   };
 
@@ -234,62 +254,82 @@ export default function Screen(): JSX.Element {
   return (
     <SafeAreaView style={styles.container}>
       <Header />
-
-      <View style={styles.searchSection}>
-        <TextInput
-          placeholder="🔍 Search items..."
-          style={styles.searchInput}
-          value={search}
-          onChangeText={setSearch}
-        />
-        <FontAwesome name="bell" size={24} color="white" style={styles.bellIcon} />
+      <View style={styles.backgroundBubbles}>
+        <View style={styles.bubble1} />
+        <View style={styles.bubble2} />
+        <View style={styles.bubble3} />
+        <View style={styles.bubble4} />
+        <View style={styles.bubble5} />
+        <View style={styles.bubble6} />
       </View>
 
-      <Text style={styles.sectionTitle}>📦 Available Items</Text>
-
-      <FlatList
-        data={items.filter((i) =>
-          i.name.toLowerCase().includes(search.toLowerCase())
-        )}
-        keyExtractor={(i) => i.id.toString()}
-        contentContainerStyle={{ paddingBottom: 100 }}
-        renderItem={({ item }) => (
-          <View style={styles.item}>
-            {item.image_url ? (
-              <Image source={{ uri: item.image_url }} style={styles.itemImage} />
-            ) : (
-              <View style={[styles.itemImage, styles.noImage]}>
-                <Text style={{ color: "#888" }}>No Image</Text>
-              </View>
-            )}
-            <View style={{ flex: 1 }}>
-              <Text style={styles.itemName}>{item.name}</Text>
-              <Text style={styles.itemAvailable}>Available</Text>
-              {item.description ? (
-                <Text style={styles.itemDescription}>{item.description}</Text>
-              ) : null}
+          <View style={styles.searchSection}>
+            <View style={styles.searchContainer}>
+              <TextInput
+                placeholder="🔍 Search items..."
+                style={styles.searchInput}
+                value={search}
+                onChangeText={setSearch}
+                placeholderTextColor="#666"
+              />
             </View>
-            <TouchableOpacity
-              style={styles.itemButton}
-              onPress={() => openRequest(item)}
+            <TouchableOpacity 
+              style={styles.bellContainer}
+              onPress={() => Alert.alert('Notifications', 'Notification feature coming soon!')}
             >
-              <Text style={styles.itemButtonText}>Request</Text>
+              <FontAwesome name="bell" size={20} color="#007e3a" />
             </TouchableOpacity>
           </View>
-        )}
-      />
+
+          <Text style={styles.sectionTitle}>📦 Available Items</Text>
+
+          <FlatList
+            data={items.filter((i) =>
+              i.name.toLowerCase().includes(search.toLowerCase())
+            )}
+            keyExtractor={(i) => i.id.toString()}
+            contentContainerStyle={{ paddingBottom: 100 }}
+            renderItem={({ item }) => (
+              <View style={styles.item}>
+                {item.image_url ? (
+                  <Image source={{ uri: item.image_url }} style={styles.itemImage} />
+                ) : (
+                  <View style={[styles.itemImage, styles.noImage]}>
+                    <FontAwesome name="image" size={24} color="#ccc" />
+                  </View>
+                )}
+                <View style={styles.itemContent}>
+                  <Text style={styles.itemName}>{item.name}</Text>
+                  {item.description ? (
+                    <Text style={styles.itemDescription}>{item.description}</Text>
+                  ) : null}
+                </View>
+                <TouchableOpacity
+                  style={styles.itemButton}
+                  onPress={() => openRequest(item)}
+                >
+                  <Text style={styles.itemButtonText}>Request</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          />
 
       {/* Modal */}
       <Modal
         isVisible={isModalVisible}
-        onBackdropPress={() => setModalVisible(false)}
+        onBackdropPress={closeModal}
         useNativeDriver
         hideModalContentWhileAnimating
       >
         <View style={styles.modal}>
+          <View style={styles.modalBubbles}>
+            <View style={styles.modalBubble1} />
+            <View style={styles.modalBubble2} />
+            <View style={styles.modalBubble3} />
+          </View>
           <TouchableOpacity
             style={styles.closeBtn}
-            onPress={() => setModalVisible(false)}
+            onPress={closeModal}
           >
             <FontAwesome name="times" size={22} color="#333" />
           </TouchableOpacity>
@@ -305,7 +345,7 @@ export default function Screen(): JSX.Element {
             />
             <TextInput
               value={form.idNumber}
-              placeholder="ID Number"
+              placeholder="School i.d"
               style={styles.input}
               onChangeText={(t) => handleFormChange("idNumber", t)}
             />
@@ -426,7 +466,7 @@ export default function Screen(): JSX.Element {
                 <Text style={styles.submitBtnText}>Submit</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                onPress={() => setModalVisible(false)}
+                onPress={closeModal}
                 style={styles.cancelBtn}
               >
                 <Text style={styles.cancelBtnText}> Cancel</Text>
@@ -446,14 +486,81 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#eef7f2",
+    position: 'relative',
+  },
+  backgroundBubbles: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 0,
+  },
+  bubble1: {
+    position: 'absolute',
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(0, 126, 58, 0.1)',
+    top: 100,
+    right: 20,
+  },
+  bubble2: {
+    position: 'absolute',
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(0, 166, 81, 0.15)',
+    top: 200,
+    left: 30,
+  },
+  bubble3: {
+    position: 'absolute',
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(255, 215, 0, 0.1)',
+    top: 350,
+    right: 40,
+  },
+  bubble4: {
+    position: 'absolute',
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: 'rgba(0, 126, 58, 0.08)',
+    top: 500,
+    left: 20,
+  },
+  bubble5: {
+    position: 'absolute',
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    backgroundColor: 'rgba(0, 166, 81, 0.12)',
+    top: 650,
+    right: 60,
+  },
+  bubble6: {
+    position: 'absolute',
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: 'rgba(255, 215, 0, 0.08)',
+    top: 800,
+    left: 50,
   },
   searchSection: {
-    margin: 15,
+    margin: 12,
     flexDirection: "row",
     alignItems: "center",
+    gap: 10,
+    zIndex: 1,
+  },
+  searchContainer: {
+    flex: 1,
   },
   searchInput: {
-    flex: 1,
     backgroundColor: "white",
     padding: 12,
     borderRadius: 12,
@@ -463,8 +570,17 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 2,
   },
-  bellIcon: {
-    marginLeft: 15,
+  bellContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "white",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
   },
   sectionTitle: {
     marginHorizontal: 15,
@@ -472,24 +588,26 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "700",
     color: "#007e3a",
+    zIndex: 1,
   },
   item: {
     backgroundColor: "white",
     marginHorizontal: 15,
-    marginVertical: 7,
-    padding: 15,
-    borderRadius: 15,
+    marginVertical: 6,
+    padding: 12,
+    borderRadius: 12,
     flexDirection: "row",
     alignItems: "center",
     shadowColor: "#000",
     shadowOpacity: 0.1,
     shadowRadius: 5,
     elevation: 4,
+    zIndex: 1,
   },
   itemImage: {
-    width: 65,
-    height: 65,
-    borderRadius: 10,
+    width: 50,
+    height: 50,
+    borderRadius: 8,
     marginRight: 12,
     resizeMode: "cover",
   },
@@ -498,26 +616,25 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  itemName: {
-    fontSize: 16,
-    fontWeight: "600",
-    marginBottom: 3,
+  itemContent: {
+    flex: 1,
   },
-  itemAvailable: {
-    fontSize: 12,
-    color: "green",
-    fontWeight: "500",
+  itemName: {
+    fontSize: 14,
+    fontWeight: "600",
+    marginBottom: 4,
+    color: "#333",
   },
   itemDescription: {
-    fontSize: 11,
-    color: "#555",
-    marginTop: 3,
+    fontSize: 10,
+    color: "#666",
+    lineHeight: 14,
   },
   itemButton: {
-    backgroundColor: "#00a651",
+    backgroundColor: "#007e3a",
     paddingVertical: 8,
     paddingHorizontal: 14,
-    borderRadius: 25,
+    borderRadius: 20,
     shadowColor: "#000",
     shadowOpacity: 0.15,
     shadowRadius: 4,
@@ -525,7 +642,7 @@ const styles = StyleSheet.create({
   },
   itemButtonText: {
     color: "white",
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "600",
   },
   modal: {
@@ -537,6 +654,43 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 6,
     elevation: 5,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  modalBubbles: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 0,
+  },
+  modalBubble1: {
+    position: 'absolute',
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(0, 126, 58, 0.1)',
+    top: 20,
+    right: 20,
+  },
+  modalBubble2: {
+    position: 'absolute',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0, 166, 81, 0.15)',
+    top: 80,
+    left: 30,
+  },
+  modalBubble3: {
+    position: 'absolute',
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: 'rgba(255, 215, 0, 0.1)',
+    top: 150,
+    right: 40,
   },
   closeBtn: {
     position: "absolute",
@@ -550,6 +704,7 @@ const styles = StyleSheet.create({
     marginTop: 20,
     textAlign: "center",
     color: "#333",
+    zIndex: 1,
   },
   selectedItem: {
     textAlign: "center",
@@ -557,6 +712,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#007e3a",
     fontSize: 16,
+    zIndex: 1,
   },
  label: {
   fontWeight: "600",

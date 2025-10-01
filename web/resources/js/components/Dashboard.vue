@@ -86,9 +86,11 @@
               :style="{
                 gridColumn: event.col,
                 gridRow: event.rowStart + ' / span ' + event.rowSpan,
-                background: event.color
+                background: event.color,
+                border: highlightedEventId === event.id ? '3px solid #ffd700' : 'none',
+                boxShadow: highlightedEventId === event.id ? '0 0 10px rgba(255, 215, 0, 0.5)' : '0 2px 8px rgba(0,0,0,0.08)'
               }"
-              @click="showDetails(event.name, event.idnum, event.year, event.dept, event.course, event.startTime + ' - ' + event.endTime, event.startTime, event.endTime, event.type || 'N/A', event.account || 'N/A', event.id, event.source)"
+              @click="showDetails(event.name, event.idnum, event.year, event.dept, event.course, event.startTime + ' - ' + event.endTime, event.startTime, event.endTime, event.type || 'N/A', event.account || 'N/A', event.id, event.source, event.item)"
             >
               <strong>{{ event.name }}</strong>
               <div>{{ formatTime(event.startTime) }} - {{ formatTime(event.endTime) }}</div>
@@ -106,12 +108,16 @@
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="4" x2="16" y2="16"/><line x1="16" y1="4" x2="4" y2="16"/></svg>
         </button>
         <h3>Event Details</h3>
+        <div v-if="modalData.fromQR" class="qr-scan-indicator">
+          <span style="color: #28a745; font-size: 12px;">📱 Scanned from Mobile Receipt</span>
+        </div>
         <table class="event-details-table">
           <tr><td><strong>Name:</strong></td><td>{{ modalData.name }}</td></tr>
           <tr><td><strong>ID number:</strong></td><td>{{ modalData.idnum }}</td></tr>
           <tr><td><strong>Year:</strong></td><td>{{ modalData.year }}</td></tr>
           <tr><td><strong>Department:</strong></td><td>{{ modalData.dept }}</td></tr>
           <tr><td><strong>Course:</strong></td><td>{{ modalData.course }}</td></tr>
+          <tr><td><strong>Item/Room:</strong></td><td>{{ modalData.itemName || 'N/A' }}</td></tr>
           <tr><td><strong>Date:</strong></td><td>{{ modalData.date }}</td></tr>
           <tr><td><strong>IN:</strong></td><td>{{ modalData.in }}</td></tr>
           <tr><td><strong>OUT:</strong></td><td>{{ modalData.out }}</td></tr>
@@ -131,11 +137,36 @@
     <div class="qr-modal" v-if="showQrModal" @click.self="closeQrModal">
       <div class="qr-modal-content">
         <h3>Scan QR Code</h3>
-        <qrcode-stream @decode="onDecode" />
-        <div v-if="qrResult">
-          <p><strong>Result:</strong> {{ qrResult }}</p>
+        <div v-if="qrError" class="qr-error">
+          <p style="color: #e74c3c; font-size: 14px;">{{ qrError }}</p>
         </div>
-        <button class="close-btn" @click="closeQrModal">Close</button>
+        <qrcode-stream 
+          @decode="onDecode" 
+          @init="onInit"
+          @error="onError"
+          :camera="camera"
+          :track="paintBoundingBox"
+          :constraints="cameraConstraints"
+        />
+        <div v-if="qrResult">
+          <p :style="{ color: qrResult.includes('Invalid') ? '#e74c3c' : qrResult.includes('successfully') ? '#2ecc71' : '#007e3a' }">
+            <strong>{{ qrResult.includes('Invalid') ? 'Error:' : qrResult.includes('successfully') ? 'Success:' : 'QR Code Detected!' }}</strong>
+          </p>
+          <p style="font-size: 12px; color: #666;">
+            {{ qrResult.includes('Invalid') ? 'Please scan a valid receipt QR code.' : 
+               qrResult.includes('successfully') ? 'Receipt details are now displayed.' : 
+               'Processing receipt data...' }}
+          </p>
+        </div>
+        <div class="qr-instructions">
+          <p style="font-size: 12px; color: #666; margin-top: 10px;">
+            Point your camera at a receipt QR code from the mobile app
+          </p>
+        </div>
+        <div class="qr-test-buttons">
+          <button class="test-btn" @click="testQRCode">Test QR</button>
+          <button class="close-btn" @click="closeQrModal">Close</button>
+        </div>
       </div>
     </div>
   </div>
@@ -163,7 +194,8 @@ export default {
         account: '',
         id: null,
         source: null,
-        returned: false
+        returned: false,
+        itemName: ''
       },
       availableItems: [],
       timeSlots: [
@@ -182,6 +214,14 @@ export default {
 
       showQrModal: false,
       qrResult: '',
+      qrError: '',
+      camera: 'auto',
+      cameraConstraints: {
+        video: {
+          facingMode: 'environment' // Use back camera if available
+        }
+      },
+      highlightedEventId: null, // Track which event is highlighted
       userEmail: ''
     };
   },
@@ -329,7 +369,7 @@ export default {
       hour = hour % 12 || 12;
       return `${hour}:${minute.toString().padStart(2, '0')} ${ampm}`;
     },
-    showDetails(name, idnum, year, dept, course, datetime, startTime, endTime, type = 'N/A', account = 'N/A', id = null, source = null) {
+    showDetails(name, idnum, year, dept, course, datetime, startTime, endTime, type = 'N/A', account = 'N/A', id = null, source = null, itemName = 'N/A') {
       // Extract and normalize date and times
       const extractDatePart = (s) => {
         if (!s) return '';
@@ -378,11 +418,12 @@ export default {
         returned = borrower ? borrower.returned : false;
       }
       
-      this.modalData = { name, idnum, type, year, dept, course, date, in: inTime, out: outTime, account, id, source, returned };
+      this.modalData = { name, idnum, type, year, dept, course, date, in: inTime, out: outTime, account, id, source, returned, itemName };
       this.modalVisible = true;
     },
     closeModal() {
       this.modalVisible = false;
+      this.highlightedEventId = null; // Clear highlight when modal is closed
     },
     async markAsReturned() {
       console.log('markAsReturned called with modalData:', this.modalData);
@@ -416,6 +457,12 @@ export default {
         this.modalData.returned = true;
         alert('Item marked as returned successfully!');
         this.closeModal();
+        
+        // Refresh data to remove returned items from timeslot
+        await this.refreshData();
+        
+        // Redirect to History page after successful return
+        this.$router.push('/history');
       } catch (error) {
         console.error('Error marking item as returned:', error);
         alert('Failed to mark item as returned. Please try again.');
@@ -430,13 +477,401 @@ export default {
     },
     onDecode(result) {
       this.qrResult = result;
+      this.processQRCode(result);
     },
     openQrModal() {
       this.qrResult = '';
+      this.qrError = '';
       this.showQrModal = true;
     },
     closeQrModal() {
       this.showQrModal = false;
+    },
+    async onInit(promise) {
+      try {
+        await promise;
+        this.qrError = '';
+        console.log('QR Scanner initialized successfully');
+      } catch (error) {
+        console.error('QR Scanner initialization failed:', error);
+        if (error.name === 'NotAllowedError') {
+          this.qrError = 'Camera access denied. Please allow camera access and try again.';
+        } else if (error.name === 'NotFoundError') {
+          this.qrError = 'No camera found. Please connect a camera and try again.';
+        } else if (error.name === 'NotSupportedError') {
+          this.qrError = 'Camera not supported. Please use a different browser.';
+        } else if (error.name === 'NotReadableError') {
+          this.qrError = 'Camera is already in use by another application.';
+        } else {
+          this.qrError = 'Camera initialization failed. Please try again.';
+        }
+      }
+    },
+    onError(error) {
+      console.error('QR Scanner error:', error);
+      this.qrError = 'QR Scanner error: ' + error.message;
+    },
+    paintBoundingBox(detectedCodes, ctx) {
+      // Optional: Add visual feedback for detected QR codes
+      detectedCodes.forEach(code => {
+        const { x, y, width, height } = code.boundingBox;
+        ctx.strokeStyle = '#007e3a';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x, y, width, height);
+      });
+    },
+    processQRCode(qrResult) {
+      try {
+        console.log('QR Code detected:', qrResult);
+        console.log('QR Code type:', typeof qrResult);
+        console.log('QR Code length:', qrResult.length);
+        
+        // Parse the QR code JSON data
+        const qrData = JSON.parse(qrResult);
+        console.log('Parsed QR data:', qrData);
+        console.log('QR Data type:', qrData.type);
+        console.log('QR Data keys:', Object.keys(qrData));
+        
+        // Validate that this is a receipt QR code
+        if (!qrData.type || (!qrData.type.includes('receipt'))) {
+          console.log('Invalid QR code type:', qrData.type);
+          console.log('Expected type to include "receipt"');
+          this.qrResult = 'Invalid QR code. Please scan a valid receipt QR code.';
+          setTimeout(() => {
+            this.qrResult = '';
+          }, 3000);
+          return;
+        }
+        
+        // Map QR data to Event Details modal format
+        const eventDetails = {
+          name: qrData.borrowerName || '-',
+          idnum: qrData.schoolId || '-',
+          type: qrData.type === 'item_request_receipt' ? 'Equipment' : 'Room',
+          year: qrData.year || '-',
+          dept: qrData.department || '-',
+          course: qrData.course || '-',
+          date: qrData.date || '-',
+          in: qrData.timeIn || '-',
+          out: qrData.timeOut || '-',
+          account: qrData.borrowerName || '-',
+          id: qrData.requestId || null,
+          source: qrData.type === 'item_request_receipt' ? 'item' : 'room',
+          returned: false, // QR receipts are typically for active requests
+          itemName: qrData.itemName || qrData.roomName || '-'
+        };
+        
+        // Close QR modal and directly show the Event Details modal
+        this.closeQrModal();
+        this.showEventDetailsFromQR(eventDetails);
+        
+        console.log('QR Code processed successfully:', eventDetails);
+        console.log('Event Details modal should now be visible');
+        
+        // Show success message briefly
+        this.qrResult = 'Receipt data loaded successfully!';
+        setTimeout(() => {
+          this.qrResult = '';
+        }, 2000);
+      } catch (error) {
+        console.error('Error processing QR code:', error);
+        console.log('Error message:', error.message);
+        console.log('Raw QR result that failed to parse:', qrResult);
+        console.log('QR result type:', typeof qrResult);
+        console.log('QR result length:', qrResult ? qrResult.length : 'null/undefined');
+        this.qrResult = 'Invalid QR code format. Please scan a valid receipt QR code.';
+        setTimeout(() => {
+          this.qrResult = '';
+        }, 3000);
+      }
+    },
+    showEventDetailsFromQR(eventDetails) {
+      console.log('Showing Event Details from QR data:', eventDetails);
+      
+      // Set the selected date to the event date to show the event in calendar
+      this.selectedDate = eventDetails.date;
+      
+      // Set the correct sort type (EQUIPMENT or ROOMS)
+      this.sortBy = eventDetails.source === 'item' ? 'EQUIPMENT' : 'ROOMS';
+      
+      // Format the time for display
+      const formatTimeForDisplay = (timeStr) => {
+        if (!timeStr || timeStr === '-') return '-';
+        // Convert 24-hour format to 12-hour format if needed
+        const time = timeStr.includes(':') ? timeStr : `${timeStr}:00`;
+        const [hours, minutes] = time.split(':');
+        const hour = parseInt(hours, 10);
+        const ampm = hour >= 12 ? 'PM' : 'AM';
+        const displayHour = hour % 12 || 12;
+        return `${displayHour}:${minutes} ${ampm}`;
+      };
+      
+      // Directly show the Event Details modal with QR data
+      this.modalData = {
+        name: eventDetails.name,
+        idnum: eventDetails.idnum,
+        type: eventDetails.type,
+        year: eventDetails.year,
+        dept: eventDetails.dept,
+        course: eventDetails.course,
+        date: eventDetails.date,
+        in: formatTimeForDisplay(eventDetails.in),
+        out: formatTimeForDisplay(eventDetails.out),
+        account: eventDetails.account,
+        id: eventDetails.id,
+        source: eventDetails.source,
+        returned: eventDetails.returned,
+        itemName: eventDetails.itemName,
+        fromQR: true // Mark that this came from QR scan
+      };
+      
+      this.modalVisible = true;
+      
+      // Show success message
+      this.qrResult = 'Event Details displayed from QR code!';
+      setTimeout(() => {
+        this.qrResult = '';
+      }, 2000);
+    },
+    findAndHighlightEvent(eventDetails) {
+      console.log('Finding event for QR receipt:', eventDetails);
+      console.log('Current borrowers data:', this.borrowers);
+      console.log('Current room requests data:', this.roomRequests);
+      
+      // Set the selected date to the event date to show the event in calendar
+      this.selectedDate = eventDetails.date;
+      
+      // Set the correct sort type (EQUIPMENT or ROOMS)
+      this.sortBy = eventDetails.source === 'item' ? 'EQUIPMENT' : 'ROOMS';
+      
+      // Wait for the calendar to update, then find and highlight the event
+      this.$nextTick(() => {
+        // Find the matching event in the current data with more flexible matching
+        let foundEvent = null;
+        
+        if (eventDetails.source === 'item') {
+          // Look in borrowers data with multiple matching strategies
+          console.log('Searching in borrowers data...');
+          foundEvent = this.borrowers.find(b => {
+            console.log('Checking borrower:', b);
+            // Try multiple matching criteria
+            const idMatch = b.id === eventDetails.id;
+            const nameIdDateMatch = b.name === eventDetails.name && 
+                                  b.borrower_id === eventDetails.idnum && 
+                                  b.date === eventDetails.date;
+            const nameDateMatch = b.name === eventDetails.name && b.date === eventDetails.date;
+            const idDateMatch = b.borrower_id === eventDetails.idnum && b.date === eventDetails.date;
+            
+            console.log('Matching results:', { idMatch, nameIdDateMatch, nameDateMatch, idDateMatch });
+            return idMatch || nameIdDateMatch || nameDateMatch || idDateMatch;
+          });
+        } else {
+          // Look in room requests data with multiple matching strategies
+          console.log('Searching in room requests data...');
+          foundEvent = this.roomRequests.find(r => {
+            console.log('Checking room request:', r);
+            // Try multiple matching criteria
+            const idMatch = r.id === eventDetails.id;
+            const nameIdDateMatch = r.name === eventDetails.name && 
+                                  r.borrower_id === eventDetails.idnum && 
+                                  r.date === eventDetails.date;
+            const nameDateMatch = r.name === eventDetails.name && r.date === eventDetails.date;
+            const idDateMatch = r.borrower_id === eventDetails.idnum && r.date === eventDetails.date;
+            
+            console.log('Matching results:', { idMatch, nameIdDateMatch, nameDateMatch, idDateMatch });
+            return idMatch || nameIdDateMatch || nameDateMatch || idDateMatch;
+          });
+        }
+        
+        if (foundEvent) {
+          console.log('Found matching event:', foundEvent);
+          
+          // Highlight the found event
+          this.highlightedEventId = foundEvent.id;
+          
+          // Open the Event Details modal for the found event
+          this.showDetails(
+            foundEvent.name,
+            foundEvent.borrower_id,
+            foundEvent.year,
+            foundEvent.department,
+            foundEvent.course,
+            `${foundEvent.date} ${foundEvent.time_in} - ${foundEvent.time_out}`,
+            `${foundEvent.date} ${foundEvent.time_in}`,
+            `${foundEvent.date} ${foundEvent.time_out}`,
+            eventDetails.source === 'item' ? 'Equipment' : 'Room',
+            foundEvent.name,
+            foundEvent.id,
+            eventDetails.source,
+            eventDetails.source === 'item' ? foundEvent.item?.name : foundEvent.room?.name
+          );
+          
+          // Show success message
+          this.qrResult = 'Event found and highlighted!';
+          setTimeout(() => {
+            this.qrResult = '';
+          }, 2000);
+          
+          // Remove highlight after 5 seconds
+          setTimeout(() => {
+            this.highlightedEventId = null;
+          }, 5000);
+        } else {
+          console.log('No exact match found, trying fallback search...');
+          
+          // Fallback: Try to find any event with similar data
+          let fallbackEvent = null;
+          
+          if (eventDetails.source === 'item') {
+            // Try to find by name only, or by date only
+            fallbackEvent = this.borrowers.find(b => 
+              b.name === eventDetails.name || 
+              b.date === eventDetails.date ||
+              b.borrower_id === eventDetails.idnum
+            );
+          } else {
+            fallbackEvent = this.roomRequests.find(r => 
+              r.name === eventDetails.name || 
+              r.date === eventDetails.date ||
+              r.borrower_id === eventDetails.idnum
+            );
+          }
+          
+          if (fallbackEvent) {
+            console.log('Found fallback event:', fallbackEvent);
+            this.highlightedEventId = fallbackEvent.id;
+            
+            // Open the Event Details modal for the fallback event
+            this.showDetails(
+              fallbackEvent.name,
+              fallbackEvent.borrower_id,
+              fallbackEvent.year,
+              fallbackEvent.department,
+              fallbackEvent.course,
+              `${fallbackEvent.date} ${fallbackEvent.time_in} - ${fallbackEvent.time_out}`,
+              `${fallbackEvent.date} ${fallbackEvent.time_in}`,
+              `${fallbackEvent.date} ${fallbackEvent.time_out}`,
+              eventDetails.source === 'item' ? 'Equipment' : 'Room',
+              fallbackEvent.name,
+              fallbackEvent.id,
+              eventDetails.source,
+              eventDetails.source === 'item' ? fallbackEvent.item?.name : fallbackEvent.room?.name
+            );
+            
+            this.qrResult = 'Similar event found and highlighted!';
+            setTimeout(() => {
+              this.qrResult = '';
+            }, 2000);
+            
+            setTimeout(() => {
+              this.highlightedEventId = null;
+            }, 5000);
+          } else {
+            console.log('No matching event found in calendar');
+            console.log('Available borrowers:', this.borrowers.map(b => ({ id: b.id, name: b.name, date: b.date, borrower_id: b.borrower_id })));
+            console.log('Available room requests:', this.roomRequests.map(r => ({ id: r.id, name: r.name, date: r.date, borrower_id: r.borrower_id })));
+            alert('Event not found in current calendar data. Please check:\n1. The item may have already been returned\n2. The data may not be loaded yet\n3. Try refreshing the page\n4. Check the console for debugging information');
+          }
+        }
+      });
+    },
+    testQRCode() {
+      // Test QR code data that matches the format from Profile.tsx
+      // Use today's date to ensure the event appears in the calendar
+      const today = new Date().toISOString().substr(0, 10);
+      const testQRData = {
+        requestId: 999, // Use a unique ID for testing
+        borrowerName: 'Test User',
+        itemName: 'Test Projector',
+        schoolId: 'TEST-12345',
+        year: '3rd Year',
+        department: 'Computer Science',
+        course: 'BSIT',
+        date: today,
+        timeIn: '9:00 AM',
+        timeOut: '11:00 AM',
+        timestamp: new Date().toISOString(),
+        type: 'item_request_receipt'
+      };
+      
+      const testQRString = JSON.stringify(testQRData);
+      console.log('Testing with QR data:', testQRString);
+      this.processQRCode(testQRString);
+    },
+    async refreshData() {
+      console.log('Refreshing data...');
+      try {
+        await Promise.all([
+          this.fetchBorrowers(),
+          this.fetchRoomRequests(),
+          this.fetchRooms(),
+          this.fetchItems()
+        ]);
+        console.log('Data refreshed successfully');
+        this.qrResult = 'Data refreshed successfully!';
+        setTimeout(() => {
+          this.qrResult = '';
+        }, 2000);
+      } catch (error) {
+        console.error('Error refreshing data:', error);
+        this.qrResult = 'Error refreshing data. Please try again.';
+        setTimeout(() => {
+          this.qrResult = '';
+        }, 3000);
+      }
+    },
+    showAllEvents() {
+      console.log('=== ALL AVAILABLE EVENTS ===');
+      console.log('Borrowers (Equipment):', this.borrowers);
+      console.log('Room Requests:', this.roomRequests);
+      console.log('Processed Events:', this.processedEvents);
+      
+      // Show in alert for easy viewing
+      const borrowerInfo = this.borrowers.map(b => 
+        `ID: ${b.id}, Name: ${b.name}, Date: ${b.date}, Borrower ID: ${b.borrower_id}`
+      ).join('\n');
+      
+      const roomInfo = this.roomRequests.map(r => 
+        `ID: ${r.id}, Name: ${r.name}, Date: ${r.date}, Borrower ID: ${r.borrower_id}`
+      ).join('\n');
+      
+      alert(`Borrowers (${this.borrowers.length}):\n${borrowerInfo}\n\nRoom Requests (${this.roomRequests.length}):\n${roomInfo}`);
+    },
+    manualQRInput() {
+      const qrData = prompt('Enter QR code data (JSON format):');
+      if (qrData) {
+        try {
+          // Validate it's JSON
+          JSON.parse(qrData);
+          this.processQRCode(qrData);
+        } catch (error) {
+          alert('Invalid JSON format. Please enter valid QR code data.');
+        }
+      }
+    },
+    testQRCode() {
+      // Test QR code data that matches the format from Receipt.tsx
+      const today = new Date().toISOString().substr(0, 10);
+      const testQRData = {
+        type: 'item_request_receipt',
+        requestId: 123,
+        borrowerName: 'Test User',
+        schoolId: 'TEST-12345',
+        year: '3rd Year',
+        department: 'Computer Science',
+        course: 'BSIT',
+        date: today,
+        timeIn: '09:00',
+        timeOut: '11:00',
+        itemName: 'Test Projector',
+        unitCode: 'UNIT-123',
+        timestamp: new Date().toISOString()
+      };
+      
+      const testQRString = JSON.stringify(testQRData);
+      console.log('Testing with QR data:', testQRString);
+      console.log('This should open the Event Details modal with all request information');
+      this.processQRCode(testQRString);
     },
     async logout() {
       try {
@@ -871,6 +1306,35 @@ export default {
 }
 .qr-modal-content h3 {
   margin-bottom: 12px;
+}
+.qr-error {
+  background: #ffeaea;
+  border: 1px solid #e74c3c;
+  border-radius: 4px;
+  padding: 8px;
+  margin-bottom: 12px;
+}
+.qr-instructions {
+  text-align: center;
+  margin-top: 8px;
+}
+.qr-test-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 16px;
+}
+.test-btn {
+  background: #6f42c1;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-size: 12px;
+}
+.test-btn:hover {
+  background: #5a32a3;
 }
 .qr-modal-content p {
   margin: 10px 0 0 0;

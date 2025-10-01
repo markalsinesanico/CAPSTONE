@@ -75,12 +75,6 @@ class RequestItemController extends Controller
         return response()->json($requestItem);
     }
 
-    public function markAsReturned(RequestItem $requestItem)
-    {
-        $requestItem->update(['returned' => true]);
-        return response()->json($requestItem->load('item'));
-    }
-
     // Use id param instead of implicit model binding to make delete more robust
     public function destroy($id)
     {
@@ -106,6 +100,29 @@ class RequestItemController extends Controller
         } catch (\Throwable $e) {
             \Illuminate\Support\Facades\Log::error('Failed to delete RequestItem', ['error' => $e->getMessage(), 'route_param' => $id]);
             return response()->json(['message' => 'Failed to delete request', 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Mark an item as returned
+     */
+    public function return($id)
+    {
+        try {
+            $requestItem = RequestItem::findOrFail($id);
+            $requestItem->update(['returned' => true]);
+            
+            // Log the update for debugging
+            \Illuminate\Support\Facades\Log::info('Item marked as returned', [
+                'id' => $id,
+                'returned' => $requestItem->returned,
+                'updated_at' => $requestItem->updated_at
+            ]);
+            
+            return response()->json(['message' => 'Item marked as returned', 'id' => $id, 'returned' => $requestItem->returned]);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Failed to mark item as returned', ['error' => $e->getMessage(), 'id' => $id]);
+            return response()->json(['message' => 'Failed to mark item as returned', 'error' => $e->getMessage()], 500);
         }
     }
 

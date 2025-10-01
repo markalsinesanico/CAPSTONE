@@ -28,6 +28,7 @@ class RoomRequest extends Model
         'date' => 'date',
         'time_in' => 'datetime:H:i',
         'time_out' => 'datetime:H:i',
+        'returned' => 'boolean',
     ];
 
     public function room()

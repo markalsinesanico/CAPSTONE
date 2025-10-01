@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert, Modal, FlatList, ActivityIndicator, StatusBar } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView, Dimensions } from 'react-native';
 import { useImmersiveMode } from '../src/useImmersiveMode';
 import { FontAwesome5 } from '@expo/vector-icons';
 import Header from '../navigation/Header';
@@ -9,6 +9,8 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../App';
 import API from '../src/api';
+
+const { width } = Dimensions.get('window');
 
 export default function Profile() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -40,205 +42,350 @@ export default function Profile() {
     }
   };
 
-  const [receiptVisible, setReceiptVisible] = React.useState(false);
-  const [loadingReceipt, setLoadingReceipt] = React.useState(false);
-  const [itemRequests, setItemRequests] = React.useState<any[]>([]);
-  const [roomRequests, setRoomRequests] = React.useState<any[]>([]);
-  const [cancellingIds, setCancellingIds] = React.useState<number[]>([]);
-
-  const openReceipt = async () => {
-    setReceiptVisible(true);
-    await loadReceipts();
+  const handleReceipt = () => {
+    navigation.navigate('Receipt');
   };
 
-  const loadReceipts = async () => {
-    setLoadingReceipt(true);
-    try {
-      const userJson = await AsyncStorage.getItem('user');
-      const user = userJson ? JSON.parse(userJson) : null;
-
-      const [itemsRes, roomsRes] = await Promise.all([
-        API.get('/requests'),
-        API.get('/room-requests'),
-      ]);
-
-      const items = itemsRes.data || [];
-      const rooms = roomsRes.data || [];
-
-      const storedEmail = await AsyncStorage.getItem('email');
-      const storedBorrowerId = await AsyncStorage.getItem('borrower_id');
-      const candidates = new Set<string>();
-      if (user) {
-        if (user.id) candidates.add(String(user.id));
-        if (user.email) candidates.add(String(user.email));
-        if (user.name) candidates.add(String(user.name));
-      }
-      if (storedEmail) candidates.add(storedEmail);
-      if (storedBorrowerId) candidates.add(storedBorrowerId);
-
-      const matchBorrower = (r: any) => {
-        if (!r) return false;
-        const fields = [r.borrower_id, r.user_id, r.email, r.name];
-        return fields.some((f) => f != null && candidates.has(String(f)));
-      };
-
-      setItemRequests(candidates.size ? items.filter(matchBorrower) : items);
-      setRoomRequests(candidates.size ? rooms.filter(matchBorrower) : rooms);
-    } catch (err) {
-      console.log('Failed to load receipts', err);
-      Alert.alert('Error', 'Failed to load receipts');
-    } finally {
-      setLoadingReceipt(false);
-    }
+  const handleHistory = () => {
+    // Navigate to history screen
+    Alert.alert('History', 'History functionality will be implemented here.');
   };
 
-  function formatDisplayTime(t: string | null | undefined) {
-    if (!t) return '-';
-    if (t.includes('T')) t = t.split('T')[1]?.split('.')[0]; // extract time from ISO
-    if (t.includes(' ')) t = t.split(' ')[1]; // fallback for "YYYY-MM-DD HH:mm:ss"
 
-    const [hourStr, minuteStr] = t.split(':');
-    if (!hourStr || !minuteStr) return t;
-    let hour = parseInt(hourStr, 10);
-    const minute = minuteStr;
-    const suffix = hour >= 12 ? 'PM' : 'AM';
-    hour = hour % 12 || 12;
-    return `${hour}:${minute} ${suffix}`;
-  }
-
-  function formatDateOnly(ts: string | null | undefined) {
-    if (!ts) return '-';
-    if (typeof ts !== 'string') return String(ts);
-    if (ts.includes('T')) return ts.split('T')[0];
-    if (ts.includes(' ')) return ts.split(' ')[0];
-    return ts;
-  }
-
-  const cancelItemRequest = async (id: number) => {
-    setCancellingIds((prev) => [...prev, id]);
-    try {
-      await API.delete(`/requests/${id}`);
-      setItemRequests((prev) => prev.filter((r) => r.id !== id));
-      Alert.alert('Cancelled', 'Item request cancelled successfully.');
-    } catch (err: any) {
-      const msg = err.response?.data?.message || err.message || 'Failed to cancel request';
-      Alert.alert('Error', msg);
-    } finally {
-      setCancellingIds((prev) => prev.filter((x) => x !== id));
-    }
-  };
-
-  const cancelRoomRequest = async (id: number) => {
-    setCancellingIds((prev) => [...prev, id]);
-    try {
-      await API.delete(`/room-requests/${id}`);
-      setRoomRequests((prev) => prev.filter((r) => r.id !== id));
-      Alert.alert('Cancelled', 'Room reservation cancelled successfully.');
-    } catch (err: any) {
-      const msg = err.response?.data?.message || err.message || 'Failed to cancel room reservation';
-      Alert.alert('Error', msg);
-    } finally {
-      setCancellingIds((prev) => prev.filter((x) => x !== id));
-    }
-  };
 
   return (
     <View style={styles.container}>
       <Header />
-      <View style={styles.profileSection}>
-        <View style={styles.profileImg}>
-          <FontAwesome5 name="user" size={40} color="white" />
-        </View>
-        <Text style={styles.emailText}>{email}</Text>
-        <View style={styles.divider} />
-
-        <TouchableOpacity style={styles.menuItem} onPress={openReceipt}>
-          <View style={styles.menuLeft}>
-            <FontAwesome5 name="receipt" size={20} />
-            <Text>Receipt</Text>
-          </View>
-          <FontAwesome5 name="chevron-right" size={16} />
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.menuItem}>
-          <View style={styles.menuLeft}>
-            <FontAwesome5 name="history" size={20} />
-            <Text>History</Text>
-          </View>
-          <FontAwesome5 name="chevron-right" size={16} />
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.menuItem} onPress={handleLogout}>
-          <View style={styles.menuLeft}>
-            <FontAwesome5 name="sign-out-alt" size={20} />
-            <Text>Logout</Text>
-          </View>
-          <FontAwesome5 name="chevron-right" size={16} />
-        </TouchableOpacity>
+      <View style={styles.backgroundBubbles}>
+        <View style={styles.bubble1} />
+        <View style={styles.bubble2} />
+        <View style={styles.bubble3} />
+        <View style={styles.bubble4} />
+        <View style={styles.bubble5} />
+        <View style={styles.bubble6} />
+        <View style={styles.smallBubble1} />
+        <View style={styles.smallBubble2} />
+        <View style={styles.smallBubble3} />
+        <View style={styles.smallBubble4} />
+        <View style={styles.smallBubble5} />
+        <View style={styles.smallBubble6} />
+        <View style={styles.smallBubble7} />
+        <View style={styles.smallBubble8} />
+        <View style={styles.smallBubble9} />
+        <View style={styles.smallBubble10} />
       </View>
-      <Footer />
+      <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+        <View style={styles.profileSection}>
+          <View style={styles.profileImg}>
+            <FontAwesome5 name="user" size={40} color="white" />
+          </View>
+          <Text style={styles.emailText}>{email}</Text>
+          <View style={styles.divider} />
 
-      <Modal visible={receiptVisible} animationType="slide" onRequestClose={() => setReceiptVisible(false)}>
-        <View style={[styles.container, { padding: 16 }]}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Text style={{ fontSize: 18, fontWeight: 'bold' }}>Your Receipts</Text>
-            <TouchableOpacity onPress={() => setReceiptVisible(false)}>
-              <Text style={{ color: '#007e3a' }}>Close</Text>
+          {/* Enhanced Menu Items */}
+          <View style={styles.menuContainer}>
+            <TouchableOpacity style={styles.menuItem} onPress={handleHistory}>
+              <View style={styles.menuLeft}>
+                <View style={styles.iconContainer}>
+                  <FontAwesome5 name="history" size={20} color="#007e3a" />
+                </View>
+                <View style={styles.menuTextContainer}>
+                  <Text style={styles.menuTitle}>History</Text>
+                  <Text style={styles.menuSubtitle}>View your order history</Text>
+                </View>
+              </View>
+              <FontAwesome5 name="chevron-right" size={16} color="#666" />
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.menuItem} onPress={handleReceipt}>
+              <View style={styles.menuLeft}>
+                <View style={styles.iconContainer}>
+                  <FontAwesome5 name="receipt" size={20} color="#007e3a" />
+                </View>
+                <View style={styles.menuTextContainer}>
+                  <Text style={styles.menuTitle}>Receipts</Text>
+                  <Text style={styles.menuSubtitle}>View and download receipts</Text>
+                </View>
+              </View>
+              <FontAwesome5 name="chevron-right" size={16} color="#666" />
+            </TouchableOpacity>
+
+            <TouchableOpacity style={[styles.menuItem, styles.logoutItem]} onPress={handleLogout}>
+              <View style={styles.menuLeft}>
+                <View style={[styles.iconContainer, styles.logoutIcon]}>
+                  <FontAwesome5 name="sign-out-alt" size={20} color="#dc3545" />
+                </View>
+                <View style={styles.menuTextContainer}>
+                  <Text style={[styles.menuTitle, styles.logoutText]}>Logout</Text>
+                  <Text style={styles.menuSubtitle}>Sign out of your account</Text>
+                </View>
+              </View>
+              <FontAwesome5 name="chevron-right" size={16} color="#dc3545" />
             </TouchableOpacity>
           </View>
-
-          {loadingReceipt ? (
-            <ActivityIndicator style={{ marginTop: 20 }} />
-          ) : (
-            <FlatList
-              data={[...itemRequests.map((r) => ({ ...r, type: 'item' })), ...roomRequests.map((r) => ({ ...r, type: 'room' }))]}
-              keyExtractor={(it) => `${it.type}-${it.id}`}
-              renderItem={({ item }) => (
-                <View style={{ backgroundColor: '#fff', padding: 12, borderRadius: 8, marginTop: 12 }}>
-                  <Text style={{ fontWeight: 'bold', fontSize: 16, marginBottom: 6 }}>
-                    {item.type === 'item' ? item.item?.name ?? 'Item Request' : item.room?.name ?? 'Room Reservation'}
-                  </Text>
-
-                  <Text>{`Name: ${item.name ?? item.user?.name ?? item.borrower_name ?? '-'}`}</Text>
-                  <Text>{`School / Borrower ID: ${item.school_id ?? item.student_id ?? item.borrower_id ?? '-'}`}</Text>
-                  <Text>{`Year: ${item.year ?? item.yr ?? '-'}`}</Text>
-                  <Text>{`Department: ${item.department ?? item.dept ?? '-'}`}</Text>
-                  <Text>{`Course: ${item.course ?? '-'}`}</Text>
-                  <Text>{`Date: ${formatDateOnly(item.date ?? item.created_at ?? '-')}`}</Text>
-                  <Text>{`Time In: ${formatDisplayTime(item.time_in ?? item.start_time ?? item.created_at ?? '')}`}</Text>
-                  <Text>{`Time Out: ${formatDisplayTime(item.time_out ?? item.end_time ?? '')}`}</Text>
-
-                  <View style={{ flexDirection: 'row', marginTop: 8, gap: 8 }}>
-                    <TouchableOpacity
-                      disabled={cancellingIds.includes(item.id)}
-                      style={{ backgroundColor: cancellingIds.includes(item.id) ? '#aaa' : '#e74c3c', padding: 8, borderRadius: 6, minWidth: 90, alignItems: 'center' }}
-                      onPress={() => {
-                        Alert.alert('Cancel', 'Are you sure you want to cancel?', [
-                          { text: 'No', style: 'cancel' },
-                          { text: 'Yes', onPress: () => item.type === 'item' ? cancelItemRequest(item.id) : cancelRoomRequest(item.id) },
-                        ]);
-                      }}
-                    >
-                      {cancellingIds.includes(item.id) ? <ActivityIndicator color="#fff" /> : <Text style={{ color: '#fff' }}>Cancel</Text>}
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              )}
-              ListEmptyComponent={() => <Text style={{ marginTop: 20 }}>No receipts found.</Text>}
-            />
-          )}
         </View>
-      </Modal>
+      </ScrollView>
+      <Footer />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#bbe0cd' },
-  profileSection: { alignItems: 'center', marginTop: 40 },
-  profileImg: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#ccc', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#007e3a', marginBottom: 10 },
-  emailText: { fontSize: 14, marginBottom: 20 },
-  divider: { width: '80%', borderBottomWidth: 1, borderBottomColor: '#ccc', marginBottom: 20 },
-  menuItem: { width: '90%', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#fff', padding: 14, borderRadius: 12, marginVertical: 8, elevation: 2, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 2, shadowOffset: { width: 0, height: 2 } },
-  menuLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  container: { 
+    flex: 1, 
+    backgroundColor: '#f8f9fa',
+    position: 'relative',
+  },
+  backgroundBubbles: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 0,
+  },
+  bubble1: {
+    position: 'absolute',
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(0, 126, 58, 0.1)',
+    top: 100,
+    right: 20,
+  },
+  bubble2: {
+    position: 'absolute',
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(0, 166, 81, 0.15)',
+    top: 200,
+    left: 30,
+  },
+  bubble3: {
+    position: 'absolute',
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(255, 215, 0, 0.1)',
+    top: 350,
+    right: 40,
+  },
+  bubble4: {
+    position: 'absolute',
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: 'rgba(0, 126, 58, 0.08)',
+    top: 500,
+    left: 20,
+  },
+  bubble5: {
+    position: 'absolute',
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    backgroundColor: 'rgba(0, 166, 81, 0.12)',
+    top: 650,
+    right: 60,
+  },
+  bubble6: {
+    position: 'absolute',
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: 'rgba(255, 215, 0, 0.08)',
+    top: 800,
+    left: 50,
+  },
+  smallBubble1: {
+    position: 'absolute',
+    width: 25,
+    height: 25,
+    borderRadius: 12.5,
+    backgroundColor: 'rgba(0, 126, 58, 0.12)',
+    top: 120,
+    left: 60,
+  },
+  smallBubble2: {
+    position: 'absolute',
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: 'rgba(0, 166, 81, 0.1)',
+    top: 180,
+    right: 80,
+  },
+  smallBubble3: {
+    position: 'absolute',
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255, 215, 0, 0.15)',
+    top: 250,
+    left: 80,
+  },
+  smallBubble4: {
+    position: 'absolute',
+    width: 35,
+    height: 35,
+    borderRadius: 17.5,
+    backgroundColor: 'rgba(0, 126, 58, 0.08)',
+    top: 320,
+    right: 20,
+  },
+  smallBubble5: {
+    position: 'absolute',
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(0, 166, 81, 0.12)',
+    top: 400,
+    left: 40,
+  },
+  smallBubble6: {
+    position: 'absolute',
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: 'rgba(255, 215, 0, 0.1)',
+    top: 480,
+    right: 70,
+  },
+  smallBubble7: {
+    position: 'absolute',
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(0, 126, 58, 0.1)',
+    top: 550,
+    left: 70,
+  },
+  smallBubble8: {
+    position: 'absolute',
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: 'rgba(0, 166, 81, 0.08)',
+    top: 620,
+    right: 30,
+  },
+  smallBubble9: {
+    position: 'absolute',
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 215, 0, 0.12)',
+    top: 700,
+    left: 90,
+  },
+  smallBubble10: {
+    position: 'absolute',
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: 'rgba(0, 126, 58, 0.15)',
+    top: 750,
+    right: 50,
+  },
+  scrollContainer: {
+    flex: 1,
+    zIndex: 1,
+  },
+  profileSection: { 
+    alignItems: 'center', 
+    marginTop: 20,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    zIndex: 1,
+  },
+  profileImg: { 
+    width: 100, 
+    height: 100, 
+    borderRadius: 50, 
+    backgroundColor: '#007e3a', 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    borderWidth: 4, 
+    borderColor: '#fff', 
+    marginBottom: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  emailText: { 
+    fontSize: 16, 
+    fontWeight: '500',
+    color: '#333',
+    marginBottom: 20,
+    textAlign: 'center'
+  },
+  divider: { 
+    width: '100%', 
+    height: 1, 
+    backgroundColor: '#e9ecef', 
+    marginBottom: 30 
+  },
+  menuContainer: {
+    width: '100%',
+    gap: 12,
+    zIndex: 1,
+  },
+  menuItem: { 
+    width: '100%', 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'center', 
+    backgroundColor: '#fff', 
+    padding: 20, 
+    borderRadius: 16, 
+    marginVertical: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: '#f1f3f4',
+  },
+  logoutItem: {
+    backgroundColor: '#fff5f5',
+    borderColor: '#fed7d7',
+  },
+  menuLeft: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    flex: 1
+  },
+  iconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#f0f8f4',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  logoutIcon: {
+    backgroundColor: '#fef2f2',
+  },
+  menuTextContainer: {
+    flex: 1,
+  },
+  menuTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1a1a1a',
+    marginBottom: 4,
+  },
+  logoutText: {
+    color: '#dc3545',
+  },
+  menuSubtitle: {
+    fontSize: 14,
+    color: '#6c757d',
+    lineHeight: 18,
+  },
 });

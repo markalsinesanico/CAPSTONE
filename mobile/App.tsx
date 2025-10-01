@@ -7,12 +7,14 @@ import LoginScreen from './screens/LoginScreen';
 import HomeScreen from './screens/Screen';
 import RoomsScreen from './screens/Rooms';
 import ProfileScreen from './screens/Profile';
+import ReceiptScreen from './screens/Receipt';
 
 export type RootStackParamList = {
   Login: undefined;
   Home: undefined;
   Rooms: undefined;
   Profile: undefined;
+  Receipt: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -69,6 +71,14 @@ export default function App() {
         <Stack.Screen 
           name="Profile" 
           component={ProfileScreen}
+          options={{
+            statusBarHidden: true,
+            statusBarTranslucent: true,
+          }}
+        />
+        <Stack.Screen 
+          name="Receipt" 
+          component={ReceiptScreen}
           options={{
             statusBarHidden: true,
             statusBarTranslucent: true,

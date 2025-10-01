@@ -36,6 +36,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('items', ItemController::class);
     Route::apiResource('requests', RequestItemController::class);
     Route::get('/items', [ItemController::class, 'index']);
+    Route::patch('/requests/{id}/return', [RequestItemController::class, 'return']);
 
     // Rooms
     Route::apiResource('rooms', RoomController::class);
@@ -45,8 +46,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('room-requests',  [RoomRequestController::class, 'index']);
     Route::post('room-requests', [RoomRequestController::class, 'store']);
     Route::patch('room-requests/{roomRequest}', [RoomRequestController::class, 'update']);
-    Route::patch('room-requests/{roomRequest}/return', [RoomRequestController::class, 'markAsReturned']);
     Route::delete('room-requests/{roomRequest}', [RoomRequestController::class, 'destroy']);
+    Route::patch('room-requests/{id}/return', [RoomRequestController::class, 'return']);
 });
 
 Route::middleware('auth:sanctum')->group(function () {
@@ -54,6 +55,5 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/requests', [RequestItemController::class, 'index']);
     Route::post('/requests', [RequestItemController::class, 'store']);
     Route::put('/requests/{requestItem}', [RequestItemController::class, 'update']);
-    Route::patch('/requests/{requestItem}/return', [RequestItemController::class, 'markAsReturned']);
     Route::delete('/requests/{requestItem}', [RequestItemController::class, 'destroy']);
 });

@@ -40,6 +40,7 @@
               v-model="searchQuery"
               class="search-input"
             />
+            <button @click="fetchReturnedItems" class="refresh-btn">Refresh</button>
           </div>
         </div>
 
@@ -146,8 +147,10 @@ export default {
       try {
         // Fetch returned equipment requests
         const equipmentRes = await axios.get("/api/requests");
+        console.log('All equipment requests:', equipmentRes.data);
+        
         const returnedEquipment = equipmentRes.data
-          .filter(item => item.returned)
+          .filter(item => item.returned === true || item.returned === 1 || item.returned === "1")
           .map(item => ({
             id: item.id,
             name: item.name,
@@ -163,10 +166,14 @@ export default {
             returned_at: item.updated_at
           }));
 
+        console.log('Filtered returned equipment:', returnedEquipment);
+
         // Fetch returned room requests
         const roomRes = await axios.get("/api/room-requests");
+        console.log('All room requests:', roomRes.data);
+        
         const returnedRooms = roomRes.data
-          .filter(item => item.returned)
+          .filter(item => item.returned === true || item.returned === 1 || item.returned === "1")
           .map(item => ({
             id: item.id,
             name: item.name,
@@ -182,7 +189,10 @@ export default {
             returned_at: item.updated_at
           }));
 
+        console.log('Filtered returned rooms:', returnedRooms);
+
         this.returnedItems = [...returnedEquipment, ...returnedRooms];
+        console.log('Final returned items:', this.returnedItems);
       } catch (error) {
         console.error('Error fetching returned items:', error);
         alert('Failed to fetch returned items.');
@@ -369,6 +379,21 @@ export default {
 
 .search-input {
   min-width: 250px;
+}
+
+.refresh-btn {
+  background: #007e3a;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background 0.2s;
+}
+
+.refresh-btn:hover {
+  background: #005a2a;
 }
 
 .history-content {
