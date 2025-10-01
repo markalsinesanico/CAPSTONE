@@ -69,7 +69,7 @@
               <th>Date</th>
               <th>IN</th>
               <th>OUT</th>
-          
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -84,6 +84,11 @@
               <td>{{ formatDate(r.date) }}</td>
               <td>{{ formatTime(r.time_in) }}</td>
               <td>{{ formatTime(r.time_out) }}</td>
+              <td>
+                <button class="cancel-btn" @click="cancelRoomRequest(r.id)">
+                  ❌ Cancel
+                </button>
+              </td>
             </tr>
           </tbody>
         </table>
@@ -422,6 +427,17 @@ export default {
         console.error(err);
       }
     },
+    async cancelRoomRequest(id) {
+      if (!confirm("Are you sure you want to cancel this room request? This action cannot be undone.")) return;
+      try {
+        await api.delete(`/api/room-requests/${id}`);
+        alert("Room request cancelled successfully!");
+        this.fetchRoomRequests();
+      } catch (error) {
+        console.error("Failed to cancel room request:", error);
+        alert("Failed to cancel room request. Please try again.");
+      }
+    },
     async logout() {
       try {
         await axios.post('/api/logout');
@@ -473,6 +489,19 @@ body { background: #f5f5f5; }
 .edit-btn { background-color: #007bff; }
 .request-btn { background-color: #28a745; }
 .delete-btn { background-color: #dc3545; }
+.cancel-btn { 
+  background-color: #dc3545; 
+  color: white;
+  border: none;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background 0.2s;
+}
+.cancel-btn:hover {
+  background-color: #c82333;
+}
 
 .borrower-section .search-bar { margin-bottom: 15px; display: flex; justify-content: flex-end; }
 .search-bar input { padding: 8px 12px; width: 300px; border-radius: 20px; border: 1px solid #ccc; }

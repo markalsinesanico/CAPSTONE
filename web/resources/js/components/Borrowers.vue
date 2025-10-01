@@ -72,6 +72,7 @@
               <th>Time Out</th>
               <th>Item</th>
               <th>Receipt</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -89,6 +90,11 @@
               <td>
                 <button class="receipt-btn" @click="generateBorrowerQRCode(borrower)">
                   📄 Receipt
+                </button>
+              </td>
+              <td>
+                <button class="cancel-btn" @click="cancelRequest(borrower.id)">
+                  ❌ Cancel
                 </button>
               </td>
             </tr>
@@ -488,6 +494,17 @@ export default {
         this.fetchBorrowers();
       } catch {
         alert("Failed to delete request.");
+      }
+    },
+    async cancelRequest(id) {
+      if (!confirm("Are you sure you want to cancel this request? This action cannot be undone.")) return;
+      try {
+        await axios.delete(`/api/requests/${id}`);
+        alert("Request cancelled successfully!");
+        this.fetchBorrowers();
+      } catch (error) {
+        console.error("Failed to cancel request:", error);
+        alert("Failed to cancel request. Please try again.");
       }
     },
     getImageUrl(item) {
@@ -959,6 +976,19 @@ export default {
       border-radius: 4px;
       cursor: pointer;
       font-size: 12px;
+    }
+    .cancel-btn { 
+      background-color: #dc3545; 
+      color: white;
+      border: none;
+      padding: 4px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: background 0.2s;
+    }
+    .cancel-btn:hover {
+      background-color: #c82333;
     }
 
     .borrower-section .search-bar {

@@ -49,52 +49,45 @@
             <p>No returned items found.</p>
           </div>
           
-          <div v-else class="items-grid">
-            <div 
-              v-for="item in filteredReturnedItems" 
-              :key="`${item.source}-${item.id}`"
-              class="history-item"
-            >
-              <div class="item-header">
-                <h3>{{ item.name }}</h3>
-                <span class="item-type" :class="item.source">{{ item.source === 'room' ? 'Room' : 'Equipment' }}</span>
-              </div>
-              
-              <div class="item-details">
-                <div class="detail-row">
-                  <span class="label">ID Number:</span>
-                  <span class="value">{{ item.idnum }}</span>
-                </div>
-                <div class="detail-row">
-                  <span class="label">Year:</span>
-                  <span class="value">{{ item.year }}</span>
-                </div>
-                <div class="detail-row">
-                  <span class="label">Department:</span>
-                  <span class="value">{{ item.dept }}</span>
-                </div>
-                <div class="detail-row">
-                  <span class="label">Course:</span>
-                  <span class="value">{{ item.course }}</span>
-                </div>
-                <div class="detail-row">
-                  <span class="label">Date:</span>
-                  <span class="value">{{ formatDate(item.date) }}</span>
-                </div>
-                <div class="detail-row">
-                  <span class="label">Time:</span>
-                  <span class="value">{{ item.time_in }} - {{ item.time_out }}</span>
-                </div>
-                <div class="detail-row">
-                  <span class="label">Item:</span>
-                  <span class="value">{{ item.itemName }}</span>
-                </div>
-                <div class="detail-row">
-                  <span class="label">Returned:</span>
-                  <span class="value returned-date">{{ formatDate(item.returned_at) }}</span>
-                </div>
-              </div>
-            </div>
+          <div v-else>
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Name</th>
+                  <th>ID</th>
+                  <th>Year</th>
+                  <th>Department</th>
+                  <th>Course</th>
+                  <th>Type</th>
+                  <th>Item/Room</th>
+                  <th>Date</th>
+                  <th>Time In</th>
+                  <th>Time Out</th>
+                  <th>Returned</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(item, index) in filteredReturnedItems" :key="`${item.source}-${item.id}`">
+                  <td>{{ index + 1 }}</td>
+                  <td>{{ item.name }}</td>
+                  <td>{{ item.idnum }}</td>
+                  <td>{{ item.year }}</td>
+                  <td>{{ item.dept }}</td>
+                  <td>{{ item.course }}</td>
+                  <td>
+                    <span class="item-type" :class="item.source">
+                      {{ item.source === 'room' ? 'Room' : 'Equipment' }}
+                    </span>
+                  </td>
+                  <td>{{ item.itemName }}</td>
+                  <td>{{ formatDate(item.date) }}</td>
+                  <td>{{ formatTime(item.time_in) }}</td>
+                  <td>{{ formatTime(item.time_out) }}</td>
+                  <td class="returned-date">{{ formatDate(item.returned_at) }}</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
       </section>
@@ -201,7 +194,15 @@ export default {
     formatDate(dateString) {
       if (!dateString) return 'N/A';
       const date = new Date(dateString);
-      return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+      return date.toLocaleDateString();
+    },
+    formatTime(time) {
+      if (!time) return 'N/A';
+      const [hours, minutes] = time.split(':');
+      const h = parseInt(hours, 10);
+      const suffix = h >= 12 ? 'PM' : 'AM';
+      const formattedHour = ((h + 11) % 12 + 1);
+      return `${formattedHour}:${minutes} ${suffix}`;
     },
     async logout() {
       try {
@@ -410,37 +411,26 @@ export default {
   font-size: 16px;
 }
 
-.items-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-  gap: 20px;
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
 }
 
-.history-item {
-  background: #f8f9fa;
-  border: 1px solid #e9ecef;
-  border-radius: 8px;
-  padding: 20px;
-  transition: box-shadow 0.2s;
+table th, table td {
+  padding: 10px;
+  border-bottom: 1px solid #ddd;
+  text-align: center;
 }
 
-.history-item:hover {
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-}
-
-.item-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 15px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid #dee2e6;
-}
-
-.item-header h3 {
+table th {
+  background-color: #f8f9fa;
+  font-weight: bold;
   color: #2c3e50;
-  font-size: 18px;
-  margin: 0;
+}
+
+table tr:hover {
+  background-color: #f8f9fa;
 }
 
 .item-type {
@@ -459,30 +449,6 @@ export default {
 .item-type.item {
   background: #43a047;
   color: white;
-}
-
-.item-details {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.detail-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.detail-row .label {
-  font-weight: bold;
-  color: #495057;
-  min-width: 100px;
-}
-
-.detail-row .value {
-  color: #6c757d;
-  text-align: right;
-  flex: 1;
 }
 
 .returned-date {
@@ -527,18 +493,12 @@ export default {
     min-width: auto;
   }
   
-  .items-grid {
-    grid-template-columns: 1fr;
+  table {
+    font-size: 12px;
   }
   
-  .detail-row {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 4px;
-  }
-  
-  .detail-row .value {
-    text-align: left;
+  table th, table td {
+    padding: 6px 4px;
   }
 }
 </style>
