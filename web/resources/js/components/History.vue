@@ -65,6 +65,7 @@
                   <th>Time In</th>
                   <th>Time Out</th>
                   <th>Returned</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -85,6 +86,11 @@
                   <td>{{ formatTime(item.time_in) }}</td>
                   <td>{{ formatTime(item.time_out) }}</td>
                   <td class="returned-date">{{ formatDate(item.returned_at) }}</td>
+                  <td>
+                    <button class="delete-btn" @click="deleteReturnedItem(item)">
+                      🗑️ Delete
+                    </button>
+                  </td>
                 </tr>
               </tbody>
             </table>
@@ -92,6 +98,43 @@
         </div>
       </section>
     </main>
+
+    <!-- Custom Alert System -->
+    <div v-if="showAlert" class="custom-alert" :class="alertType">
+      <div class="alert-content">
+        <div class="alert-icon">
+          <span v-if="alertType === 'success'">✅</span>
+          <span v-else-if="alertType === 'error'">❌</span>
+          <span v-else-if="alertType === 'warning'">⚠️</span>
+          <span v-else>ℹ️</span>
+        </div>
+        <div class="alert-message">
+          <h4>{{ alertTitle }}</h4>
+          <p>{{ alertMessage }}</p>
+        </div>
+        <button class="alert-close" @click="closeAlert">&times;</button>
+      </div>
+    </div>
+
+    <!-- Custom Confirmation Dialog -->
+    <div v-if="showConfirmDialog" class="confirmation-overlay" @click.self="closeConfirmDialog">
+      <div class="confirmation-dialog">
+        <div class="confirmation-header">
+          <div class="confirmation-icon">
+            <span>⚠️</span>
+          </div>
+          <h3>Confirm Deletion</h3>
+        </div>
+        <div class="confirmation-body">
+          <p>Are you sure you want to permanently delete this <strong>{{ confirmItemType }}</strong>?</p>
+          <p class="confirmation-warning">This action cannot be undone.</p>
+        </div>
+        <div class="confirmation-actions">
+          <button class="btn-cancel" @click="closeConfirmDialog">Cancel</button>
+          <button class="btn-delete" @click="confirmDelete">Delete</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -104,7 +147,18 @@ export default {
       returnedItems: [],
       typeFilter: 'all',
       searchQuery: '',
-      userEmail: ''
+      userEmail: '',
+      
+      // Custom Alert System
+      showAlert: false,
+      alertType: 'info', // success, error, warning, info
+      alertTitle: '',
+      alertMessage: '',
+      
+      // Custom Confirmation Dialog
+      showConfirmDialog: false,
+      confirmItemType: '',
+      itemToDelete: null
     };
   },
   computed: {
@@ -188,7 +242,7 @@ export default {
         console.log('Final returned items:', this.returnedItems);
       } catch (error) {
         console.error('Error fetching returned items:', error);
-        alert('Failed to fetch returned items.');
+        this.showCustomAlert('error', 'Error!', 'Failed to fetch returned items.');
       }
     },
     formatDate(dateString) {
@@ -203,6 +257,57 @@ export default {
       const suffix = h >= 12 ? 'PM' : 'AM';
       const formattedHour = ((h + 11) % 12 + 1);
       return `${formattedHour}:${minutes} ${suffix}`;
+    },
+    deleteReturnedItem(item) {
+      this.itemToDelete = item;
+      this.confirmItemType = item.source === 'room' ? 'room request' : 'equipment request';
+      this.showConfirmDialog = true;
+    },
+    async confirmDelete() {
+      if (!this.itemToDelete) return;
+      
+      try {
+        // Determine the correct API endpoint based on the item source
+        const endpoint = this.itemToDelete.source === 'room' 
+          ? `/api/room-requests/${this.itemToDelete.id}`
+          : `/api/requests/${this.itemToDelete.id}`;
+        
+        await axios.delete(endpoint);
+        
+        // Remove the item from the local array
+        this.returnedItems = this.returnedItems.filter(returnedItem => 
+          !(returnedItem.id === this.itemToDelete.id && returnedItem.source === this.itemToDelete.source)
+        );
+        
+        this.showCustomAlert('success', 'Success!', 'Item deleted successfully!');
+        this.closeConfirmDialog();
+      } catch (error) {
+        console.error('Error deleting item:', error);
+        this.showCustomAlert('error', 'Error!', 'Failed to delete item. Please try again.');
+        this.closeConfirmDialog();
+      }
+    },
+    closeConfirmDialog() {
+      this.showConfirmDialog = false;
+      this.itemToDelete = null;
+      this.confirmItemType = '';
+    },
+    // Custom Alert Methods
+    showCustomAlert(type, title, message, duration = 5000) {
+      this.alertType = type;
+      this.alertTitle = title;
+      this.alertMessage = message;
+      this.showAlert = true;
+      
+      // Auto-hide after duration
+      if (duration > 0) {
+        setTimeout(() => {
+          this.closeAlert();
+        }, duration);
+      }
+    },
+    closeAlert() {
+      this.showAlert = false;
     },
     async logout() {
       try {
@@ -456,6 +561,21 @@ table tr:hover {
   font-weight: bold;
 }
 
+.delete-btn {
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background 0.2s;
+}
+
+.delete-btn:hover {
+  background-color: #c82333;
+}
+
 @media (max-width: 768px) {
   .container {
     flex-direction: column;
@@ -499,6 +619,247 @@ table tr:hover {
   
   table th, table td {
     padding: 6px 4px;
+  }
+}
+
+/* Custom Alert System */
+.custom-alert {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 10000;
+  max-width: 400px;
+  min-width: 300px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  animation: slideInRight 0.3s ease-out;
+}
+
+.custom-alert.success {
+  background: linear-gradient(135deg, #d4edda, #c3e6cb);
+  border-left: 4px solid #28a745;
+}
+
+.custom-alert.error {
+  background: linear-gradient(135deg, #f8d7da, #f5c6cb);
+  border-left: 4px solid #dc3545;
+}
+
+.custom-alert.warning {
+  background: linear-gradient(135deg, #fff3cd, #ffeaa7);
+  border-left: 4px solid #ffc107;
+}
+
+.custom-alert.info {
+  background: linear-gradient(135deg, #d1ecf1, #bee5eb);
+  border-left: 4px solid #17a2b8;
+}
+
+.alert-content {
+  display: flex;
+    align-items: flex-start;
+  padding: 16px;
+  gap: 12px;
+}
+
+.alert-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.alert-message {
+  flex: 1;
+}
+
+.alert-message h4 {
+  margin: 0 0 4px 0;
+  font-size: 16px;
+  font-weight: bold;
+  color: #2c3e50;
+}
+
+.alert-message p {
+  margin: 0;
+  font-size: 14px;
+  color: #495057;
+  line-height: 1.4;
+}
+
+.alert-close {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: #6c757d;
+  padding: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+.alert-close:hover {
+  background-color: rgba(0, 0, 0, 0.1);
+  color: #495057;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .custom-alert {
+    top: 10px;
+    right: 10px;
+    left: 10px;
+    max-width: none;
+    min-width: auto;
+  }
+}
+
+/* Custom Confirmation Dialog */
+.confirmation-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10001;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.confirmation-dialog {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  max-width: 400px;
+  width: 90%;
+  animation: slideInUp 0.3s ease-out;
+}
+
+.confirmation-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 20px 24px 16px 24px;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.confirmation-icon {
+  font-size: 24px;
+  color: #ffc107;
+}
+
+.confirmation-header h3 {
+  margin: 0;
+  color: #2c3e50;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.confirmation-body {
+  padding: 20px 24px;
+}
+
+.confirmation-body p {
+  margin: 0 0 12px 0;
+  color: #495057;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.confirmation-warning {
+  color: #dc3545 !important;
+  font-weight: bold;
+  font-size: 13px;
+}
+
+.confirmation-actions {
+  display: flex;
+  gap: 12px;
+  padding: 16px 24px 24px 24px;
+  justify-content: flex-end;
+}
+
+.btn-cancel, .btn-delete {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 14px;
+}
+
+.btn-cancel {
+  background-color: #6c757d;
+  color: white;
+}
+
+.btn-cancel:hover {
+  background-color: #5a6268;
+  transform: translateY(-1px);
+}
+
+.btn-delete {
+  background-color: #dc3545;
+  color: white;
+}
+
+.btn-delete:hover {
+  background-color: #c82333;
+  transform: translateY(-1px);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideInUp {
+  from {
+    transform: translateY(30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Mobile responsive for confirmation dialog */
+@media (max-width: 768px) {
+  .confirmation-dialog {
+    margin: 20px;
+    width: calc(100% - 40px);
+  }
+  
+  .confirmation-actions {
+    flex-direction: column;
+  }
+  
+  .btn-cancel, .btn-delete {
+    width: 100%;
   }
 }
 </style>

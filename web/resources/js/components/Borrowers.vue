@@ -197,6 +197,43 @@
       </div>
     </div>
 
+    <!-- Custom Alert System -->
+    <div v-if="showAlert" class="custom-alert" :class="alertType">
+      <div class="alert-content">
+        <div class="alert-icon">
+          <span v-if="alertType === 'success'">✅</span>
+          <span v-else-if="alertType === 'error'">❌</span>
+          <span v-else-if="alertType === 'warning'">⚠️</span>
+          <span v-else>ℹ️</span>
+        </div>
+        <div class="alert-message">
+          <h4>{{ alertTitle }}</h4>
+          <p>{{ alertMessage }}</p>
+        </div>
+        <button class="alert-close" @click="closeAlert">&times;</button>
+      </div>
+    </div>
+
+    <!-- Custom Confirmation Dialog -->
+    <div v-if="showConfirmDialog" class="confirmation-overlay" @click.self="closeConfirmDialog">
+      <div class="confirmation-dialog">
+        <div class="confirmation-header">
+          <div class="confirmation-icon">
+            <span>⚠️</span>
+          </div>
+          <h3>Confirm Cancellation</h3>
+        </div>
+        <div class="confirmation-body">
+          <p>Are you sure you want to cancel this <strong>{{ confirmItemType }}</strong>?</p>
+          <p class="confirmation-warning">This action cannot be undone.</p>
+        </div>
+        <div class="confirmation-actions">
+          <button class="btn-cancel" @click="closeConfirmDialog">Cancel</button>
+          <button class="btn-delete" @click="confirmCancel">Yes, Cancel</button>
+        </div>
+      </div>
+    </div>
+
     <!-- QR Code Modal -->
     <div v-if="showQRModal" class="modal" @click.self="closeQRModal">
       <div class="modal-content qr-modal">
@@ -263,6 +300,18 @@ export default {
       qrCodeData: "",
       qrCodeImage: "",
       qrCodes: [], // Array to store multiple QR codes
+      
+      // Custom Alert System
+      showAlert: false,
+      alertType: 'info', // success, error, warning, info
+      alertTitle: '',
+      alertMessage: '',
+      
+      // Custom Confirmation Dialog
+      showConfirmDialog: false,
+      confirmItemType: '',
+      requestToCancel: null,
+      
       DEPARTMENT_COURSES: {
         CEIT: [
           { label: 'Bachelor of Science in Electronics (BSECE)', value: 'BSECE' },
@@ -496,16 +545,47 @@ export default {
         alert("Failed to delete request.");
       }
     },
-    async cancelRequest(id) {
-      if (!confirm("Are you sure you want to cancel this request? This action cannot be undone.")) return;
+    cancelRequest(id) {
+      this.requestToCancel = id;
+      this.confirmItemType = 'equipment request';
+      this.showConfirmDialog = true;
+    },
+    async confirmCancel() {
+      if (!this.requestToCancel) return;
+      
       try {
-        await axios.delete(`/api/requests/${id}`);
-        alert("Request cancelled successfully!");
+        await axios.delete(`/api/requests/${this.requestToCancel}`);
+        this.showCustomAlert('success', 'Success!', 'Equipment request cancelled successfully!');
         this.fetchBorrowers();
+        this.closeConfirmDialog();
       } catch (error) {
         console.error("Failed to cancel request:", error);
-        alert("Failed to cancel request. Please try again.");
+        this.showCustomAlert('error', 'Error!', 'Failed to cancel request. Please try again.');
+        this.closeConfirmDialog();
       }
+    },
+    closeConfirmDialog() {
+      this.showConfirmDialog = false;
+      this.requestToCancel = null;
+      this.confirmItemType = '';
+    },
+    
+    // Custom Alert Methods
+    showCustomAlert(type, title, message, duration = 5000) {
+      this.alertType = type;
+      this.alertTitle = title;
+      this.alertMessage = message;
+      this.showAlert = true;
+      
+      // Auto-hide after duration
+      if (duration > 0) {
+        setTimeout(() => {
+          this.closeAlert();
+        }, duration);
+      }
+    },
+    closeAlert() {
+      this.showAlert = false;
     },
     getImageUrl(item) {
       return item.image_url || "/img/no-image.png";
@@ -1304,6 +1384,246 @@ export default {
   .qr-unit .qr-image {
     width: 120px;
     height: 120px;
+  }
+}
+
+/* Custom Alert System */
+.custom-alert {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 10000;
+  min-width: 300px;
+  max-width: 400px;
+  animation: slideInRight 0.3s ease-out;
+}
+
+.alert-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  position: relative;
+}
+
+.custom-alert.success .alert-content {
+  background: linear-gradient(135deg, #d4edda, #c3e6cb);
+  border-left: 4px solid #28a745;
+  color: #155724;
+}
+
+.custom-alert.error .alert-content {
+  background: linear-gradient(135deg, #f8d7da, #f5c6cb);
+  border-left: 4px solid #dc3545;
+  color: #721c24;
+}
+
+.custom-alert.warning .alert-content {
+  background: linear-gradient(135deg, #fff3cd, #ffeaa7);
+  border-left: 4px solid #ffc107;
+  color: #856404;
+}
+
+.custom-alert.info .alert-content {
+  background: linear-gradient(135deg, #d1ecf1, #bee5eb);
+  border-left: 4px solid #17a2b8;
+  color: #0c5460;
+}
+
+.alert-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.alert-message {
+  flex: 1;
+}
+
+.alert-message h4 {
+  margin: 0 0 4px 0;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.alert-message p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.alert-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  color: inherit;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.alert-close:hover {
+  opacity: 1;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .custom-alert {
+    top: 10px;
+    right: 10px;
+    left: 10px;
+    max-width: none;
+    min-width: auto;
+  }
+}
+
+/* Custom Confirmation Dialog */
+.confirmation-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10001;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.confirmation-dialog {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  max-width: 400px;
+  width: 90%;
+  animation: slideInUp 0.3s ease-out;
+}
+
+.confirmation-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 20px 24px 16px 24px;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.confirmation-icon {
+  font-size: 24px;
+  color: #ffc107;
+}
+
+.confirmation-header h3 {
+  margin: 0;
+  color: #2c3e50;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.confirmation-body {
+  padding: 20px 24px;
+}
+
+.confirmation-body p {
+  margin: 0 0 12px 0;
+  color: #495057;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.confirmation-warning {
+  color: #dc3545 !important;
+  font-weight: bold;
+  font-size: 13px;
+}
+
+.confirmation-actions {
+  display: flex;
+  gap: 12px;
+  padding: 16px 24px 24px 24px;
+  justify-content: flex-end;
+}
+
+.btn-cancel, .btn-delete {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 14px;
+}
+
+.btn-cancel {
+  background-color: #6c757d;
+  color: white;
+}
+
+.btn-cancel:hover {
+  background-color: #5a6268;
+  transform: translateY(-1px);
+}
+
+.btn-delete {
+  background-color: #dc3545;
+  color: white;
+}
+
+.btn-delete:hover {
+  background-color: #c82333;
+  transform: translateY(-1px);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideInUp {
+  from {
+    transform: translateY(30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Mobile responsive for confirmation dialog */
+@media (max-width: 768px) {
+  .confirmation-dialog {
+    margin: 20px;
+    width: calc(100% - 40px);
+  }
+  
+  .confirmation-actions {
+    flex-direction: column;
+  }
+  
+  .btn-cancel, .btn-delete {
+    width: 100%;
   }
 }
 </style>

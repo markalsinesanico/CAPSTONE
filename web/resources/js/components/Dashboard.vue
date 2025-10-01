@@ -169,6 +169,23 @@
         </div>
       </div>
     </div>
+
+    <!-- Custom Alert System -->
+    <div v-if="showAlert" class="custom-alert" :class="alertType">
+      <div class="alert-content">
+        <div class="alert-icon">
+          <span v-if="alertType === 'success'">✅</span>
+          <span v-else-if="alertType === 'error'">❌</span>
+          <span v-else-if="alertType === 'warning'">⚠️</span>
+          <span v-else>ℹ️</span>
+        </div>
+        <div class="alert-message">
+          <h4>{{ alertTitle }}</h4>
+          <p>{{ alertMessage }}</p>
+        </div>
+        <button class="alert-close" @click="closeAlert">&times;</button>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -222,7 +239,13 @@ export default {
         }
       },
       highlightedEventId: null, // Track which event is highlighted
-      userEmail: ''
+      userEmail: '',
+      
+      // Custom Alert System
+      showAlert: false,
+      alertType: 'info', // success, error, warning, info
+      alertTitle: '',
+      alertMessage: ''
     };
   },
   computed: {
@@ -455,17 +478,14 @@ export default {
         }
         
         this.modalData.returned = true;
-        alert('Item marked as returned successfully!');
+        this.showCustomAlert('success', 'Success!', 'Item marked as returned successfully!');
         this.closeModal();
         
         // Refresh data to remove returned items from timeslot
         await this.refreshData();
-        
-        // Redirect to History page after successful return
-        this.$router.push('/history');
       } catch (error) {
         console.error('Error marking item as returned:', error);
-        alert('Failed to mark item as returned. Please try again.');
+        this.showCustomAlert('error', 'Error!', 'Failed to mark item as returned. Please try again.');
       }
     },
     updateAvailableItems() {
@@ -873,6 +893,23 @@ export default {
       console.log('This should open the Event Details modal with all request information');
       this.processQRCode(testQRString);
     },
+    // Custom Alert Methods
+    showCustomAlert(type, title, message, duration = 5000) {
+      this.alertType = type;
+      this.alertTitle = title;
+      this.alertMessage = message;
+      this.showAlert = true;
+      
+      // Auto-hide after duration
+      if (duration > 0) {
+        setTimeout(() => {
+          this.closeAlert();
+        }, duration);
+      }
+    },
+    closeAlert() {
+      this.showAlert = false;
+    },
     async logout() {
       try {
         await axios.post('/api/logout');
@@ -889,7 +926,7 @@ export default {
         const res = await axios.get("/api/requests");
         this.borrowers = res.data;
       } catch {
-        alert("Failed to fetch requests.");
+        this.showCustomAlert('error', 'Error!', 'Failed to fetch requests.');
       }
     },
     async fetchRoomRequests() {
@@ -897,7 +934,7 @@ export default {
         const res = await axios.get("/api/room-requests");
         this.roomRequests = res.data;
       } catch {
-        alert("Failed to fetch room requests.");
+        this.showCustomAlert('error', 'Error!', 'Failed to fetch room requests.');
       }
     },
     async fetchRooms() {
@@ -905,7 +942,7 @@ export default {
         const res = await axios.get("/api/rooms");
         this.rooms = res.data;
       } catch {
-        alert("Failed to fetch rooms.");
+        this.showCustomAlert('error', 'Error!', 'Failed to fetch rooms.');
       }
     },
     async fetchItems() {
@@ -913,7 +950,7 @@ export default {
         const res = await axios.get("/api/items");
         this.items = res.data;
       } catch {
-        alert("Failed to fetch items.");
+        this.showCustomAlert('error', 'Error!', 'Failed to fetch items.');
       }
     },
     updateSchedule() {
@@ -1457,6 +1494,113 @@ export default {
   border-right: 1px solid #ccc;
   text-align: right;
   padding-right: 8px;
+  }
 }
+
+/* Custom Alert System */
+.custom-alert {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 10000;
+  max-width: 400px;
+  min-width: 300px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  animation: slideInRight 0.3s ease-out;
+}
+
+.custom-alert.success {
+  background: linear-gradient(135deg, #d4edda, #c3e6cb);
+  border-left: 4px solid #28a745;
+}
+
+.custom-alert.error {
+  background: linear-gradient(135deg, #f8d7da, #f5c6cb);
+  border-left: 4px solid #dc3545;
+}
+
+.custom-alert.warning {
+  background: linear-gradient(135deg, #fff3cd, #ffeaa7);
+  border-left: 4px solid #ffc107;
+}
+
+.custom-alert.info {
+  background: linear-gradient(135deg, #d1ecf1, #bee5eb);
+  border-left: 4px solid #17a2b8;
+}
+
+.alert-content {
+  display: flex;
+  align-items: flex-start;
+  padding: 16px;
+  gap: 12px;
+}
+
+.alert-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.alert-message {
+  flex: 1;
+}
+
+.alert-message h4 {
+  margin: 0 0 4px 0;
+  font-size: 16px;
+  font-weight: bold;
+  color: #2c3e50;
+}
+
+.alert-message p {
+  margin: 0;
+  font-size: 14px;
+  color: #495057;
+  line-height: 1.4;
+}
+
+.alert-close {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: #6c757d;
+  padding: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+.alert-close:hover {
+  background-color: rgba(0, 0, 0, 0.1);
+  color: #495057;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .custom-alert {
+    top: 10px;
+    right: 10px;
+    left: 10px;
+    max-width: none;
+    min-width: auto;
+  }
 }
 </style>
