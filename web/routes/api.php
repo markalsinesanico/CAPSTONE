@@ -38,6 +38,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('requests', RequestItemController::class);
     Route::get('/items', [ItemController::class, 'index']);
     Route::patch('/requests/{id}/return', [RequestItemController::class, 'return']);
+    Route::post('/requests/{id}/overdue', [RequestItemController::class, 'sendOverdueNotification']);
 
     // Rooms
     Route::apiResource('rooms', RoomController::class);
@@ -49,6 +50,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('room-requests/{roomRequest}', [RoomRequestController::class, 'update']);
     Route::delete('room-requests/{roomRequest}', [RoomRequestController::class, 'destroy']);
     Route::patch('room-requests/{id}/return', [RoomRequestController::class, 'return']);
+    Route::post('room-requests/{id}/overdue', [RoomRequestController::class, 'sendOverdueNotification']);
 
     // Notifications
     Route::get('notifications', [NotificationController::class, 'index']);
@@ -56,6 +58,16 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('notifications/mark-all-read', [NotificationController::class, 'markAllAsRead']);
     Route::delete('notifications/clear-all', [NotificationController::class, 'clearAll']);
     Route::get('notifications/unread-count', [NotificationController::class, 'unreadCount']);
+    
+    // Test endpoint for overdue notifications (remove in production)
+    Route::post('notifications/check-overdue', function() {
+        \Illuminate\Support\Facades\Artisan::call('app:check-overdue-requests');
+        $output = \Illuminate\Support\Facades\Artisan::output();
+        return response()->json([
+            'message' => 'Overdue check completed',
+            'output' => $output
+        ]);
+    });
 });
 
 Route::middleware('auth:sanctum')->group(function () {

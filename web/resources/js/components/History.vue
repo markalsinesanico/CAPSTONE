@@ -40,7 +40,6 @@
               v-model="searchQuery"
               class="search-input"
             />
-            <button @click="fetchReturnedItems" class="refresh-btn">Refresh</button>
           </div>
         </div>
 

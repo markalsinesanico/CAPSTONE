@@ -129,4 +129,57 @@ class RoomRequestController extends Controller
             return response()->json(['message' => 'Failed to mark room as returned', 'error' => $e->getMessage()], 500);
         }
     }
+
+    /**
+     * Send overdue notification for a room request
+     */
+    public function sendOverdueNotification($id)
+    {
+        try {
+            $roomRequest = RoomRequest::with('room')->findOrFail($id);
+            
+            // Create overdue notification for the user
+            if ($roomRequest->email) {
+                \Illuminate\Support\Facades\Log::info('Creating overdue notification for room', [
+                    'user_email' => $roomRequest->email,
+                    'room_name' => $roomRequest->room->name,
+                    'request_id' => $roomRequest->id
+                ]);
+                
+                try {
+                    $notification = Notification::createOverdueRoom(
+                        $roomRequest->email,
+                        $roomRequest->room->name,
+                        $roomRequest->id
+                    );
+                    \Illuminate\Support\Facades\Log::info('Overdue notification created successfully', [
+                        'notification_id' => $notification->id,
+                        'user_email' => $notification->user_email
+                    ]);
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::error('Failed to create overdue notification', [
+                        'error' => $e->getMessage(),
+                        'user_email' => $roomRequest->email
+                    ]);
+                    return response()->json(['message' => 'Failed to create overdue notification', 'error' => $e->getMessage()], 500);
+                }
+            } else {
+                \Illuminate\Support\Facades\Log::warning('No email found for room request', [
+                    'request_id' => $roomRequest->id,
+                    'request_data' => $roomRequest->toArray()
+                ]);
+                return response()->json(['message' => 'No email found for this request'], 400);
+            }
+            
+            return response()->json([
+                'message' => 'Overdue notification sent successfully',
+                'id' => $id,
+                'room_name' => $roomRequest->room->name,
+                'user_email' => $roomRequest->email
+            ]);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Failed to send overdue notification', ['error' => $e->getMessage(), 'id' => $id]);
+            return response()->json(['message' => 'Failed to send overdue notification', 'error' => $e->getMessage()], 500);
+        }
+    }
 }

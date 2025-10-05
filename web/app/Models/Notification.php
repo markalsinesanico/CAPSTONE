@@ -144,4 +144,34 @@ class Notification extends Model
             'related_id' => $requestId
         ]);
     }
+
+    /**
+     * Create a notification for overdue item request
+     */
+    public static function createOverdueItem($userEmail, $itemName, $requestId = null)
+    {
+        return self::create([
+            'user_email' => $userEmail,
+            'type' => 'warning',
+            'title' => 'Overdue Item',
+            'message' => "I hope you return what you borrowed at the time it should be returned. Please return '{$itemName}' as soon as possible.",
+            'action_type' => 'overdue_item',
+            'related_id' => $requestId
+        ]);
+    }
+
+    /**
+     * Create a notification for overdue room request
+     */
+    public static function createOverdueRoom($userEmail, $roomName, $requestId = null)
+    {
+        return self::create([
+            'user_email' => $userEmail,
+            'type' => 'warning',
+            'title' => 'Overdue Room',
+            'message' => "I hope you return what you borrowed at the time it should be returned. Please return '{$roomName}' as soon as possible.",
+            'action_type' => 'overdue_room',
+            'related_id' => $requestId
+        ]);
+    }
 }

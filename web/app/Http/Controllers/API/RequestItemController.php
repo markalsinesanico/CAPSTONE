@@ -188,4 +188,57 @@ class RequestItemController extends Controller
             'total_qty' => $item->qty,
         ]);
     }
+
+    /**
+     * Send overdue notification for an item request
+     */
+    public function sendOverdueNotification($id)
+    {
+        try {
+            $requestItem = RequestItem::with('item')->findOrFail($id);
+            
+            // Create overdue notification for the user
+            if ($requestItem->email) {
+                \Illuminate\Support\Facades\Log::info('Creating overdue notification for item', [
+                    'user_email' => $requestItem->email,
+                    'item_name' => $requestItem->item->name,
+                    'request_id' => $requestItem->id
+                ]);
+                
+                try {
+                    $notification = Notification::createOverdueItem(
+                        $requestItem->email,
+                        $requestItem->item->name,
+                        $requestItem->id
+                    );
+                    \Illuminate\Support\Facades\Log::info('Overdue notification created successfully', [
+                        'notification_id' => $notification->id,
+                        'user_email' => $notification->user_email
+                    ]);
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::error('Failed to create overdue notification', [
+                        'error' => $e->getMessage(),
+                        'user_email' => $requestItem->email
+                    ]);
+                    return response()->json(['message' => 'Failed to create overdue notification', 'error' => $e->getMessage()], 500);
+                }
+            } else {
+                \Illuminate\Support\Facades\Log::warning('No email found for request item', [
+                    'request_id' => $requestItem->id,
+                    'request_data' => $requestItem->toArray()
+                ]);
+                return response()->json(['message' => 'No email found for this request'], 400);
+            }
+            
+            return response()->json([
+                'message' => 'Overdue notification sent successfully',
+                'id' => $id,
+                'item_name' => $requestItem->item->name,
+                'user_email' => $requestItem->email
+            ]);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Failed to send overdue notification', ['error' => $e->getMessage(), 'id' => $id]);
+            return response()->json(['message' => 'Failed to send overdue notification', 'error' => $e->getMessage()], 500);
+        }
+    }
 }

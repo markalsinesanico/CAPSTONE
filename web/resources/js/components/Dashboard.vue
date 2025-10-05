@@ -123,7 +123,10 @@
           <tr><td><strong>OUT:</strong></td><td>{{ modalData.out }}</td></tr>
         </table>
         <div class="modal-actions">
-          <button class="return-btn" @click="markAsReturned" v-if="!modalData.returned">Return Item</button>
+          <div class="action-buttons">
+            <button class="return-btn" @click="markAsReturned" v-if="!modalData.returned">Return</button>
+            <button class="overdue-btn" @click="markAsOverdue" v-if="!modalData.returned && !modalData.overdue">Overdue Request</button>
+          </div>
           <button class="close-btn" @click="closeModal">Close</button>
         </div>
       </div>
@@ -212,6 +215,7 @@ export default {
         id: null,
         source: null,
         returned: false,
+        overdue: false,
         itemName: ''
       },
       availableItems: [],
@@ -439,17 +443,20 @@ export default {
 
       console.log('showDetails called', { name, idnum, year, dept, course, datetime, startTime, endTime, type, account, id, source });
       
-      // Find the original item to get the returned status
+      // Find the original item to get the returned and overdue status
       let returned = false;
+      let overdue = false;
       if (source === 'room') {
         const roomRequest = this.roomRequests.find(r => r.id === id);
         returned = roomRequest ? roomRequest.returned : false;
+        overdue = roomRequest ? roomRequest.overdue : false;
       } else {
         const borrower = this.borrowers.find(b => b.id === id);
         returned = borrower ? borrower.returned : false;
+        overdue = borrower ? borrower.overdue : false;
       }
       
-      this.modalData = { name, idnum, type, year, dept, course, date, in: inTime, out: outTime, account, id, source, returned, itemName };
+      this.modalData = { name, idnum, type, year, dept, course, date, in: inTime, out: outTime, account, id, source, returned, overdue, itemName };
       this.modalVisible = true;
     },
     closeModal() {
@@ -494,6 +501,32 @@ export default {
       } catch (error) {
         console.error('Error marking item as returned:', error);
         this.showCustomAlert('error', 'Error!', 'Failed to mark item as returned. Please try again.');
+      }
+    },
+    async markAsOverdue() {
+      console.log('markAsOverdue called with modalData:', this.modalData);
+      
+      if (!this.modalData.id || !this.modalData.source) {
+        console.error('Missing item information:', { id: this.modalData.id, source: this.modalData.source });
+        alert('Error: Missing item information');
+        return;
+      }
+
+      try {
+        const endpoint = this.modalData.source === 'room' 
+          ? `/api/room-requests/${this.modalData.id}/overdue`
+          : `/api/requests/${this.modalData.id}/overdue`;
+        
+        const response = await axios.post(endpoint);
+        
+        // Show success message with the notification details
+        this.showCustomAlert('success', 'Overdue Notification Sent!', 'I hope you return what you borrowed at the time it should be returned. Thank you');
+        this.closeModal();
+        
+        console.log('Overdue notification sent successfully:', response.data);
+      } catch (error) {
+        console.error('Error sending overdue notification:', error);
+        this.showCustomAlert('error', 'Error!', 'Failed to send overdue notification. Please try again.');
       }
     },
     updateAvailableItems() {
@@ -649,6 +682,7 @@ export default {
         id: eventDetails.id,
         source: eventDetails.source,
         returned: eventDetails.returned,
+        overdue: eventDetails.overdue || false,
         itemName: eventDetails.itemName,
         fromQR: true // Mark that this came from QR scan
       };
@@ -1471,6 +1505,34 @@ export default {
   padding: 8px 14px;
   cursor: pointer;
   font-weight: bold;
+}
+
+.overdue-btn {
+  background: #e74c3c;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  padding: 8px 14px;
+  cursor: pointer;
+  font-weight: bold;
+  margin-right: 8px;
+}
+
+.overdue-btn:hover {
+  background: #c0392b;
+}
+
+.modal-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 @media (max-width: 768px) {

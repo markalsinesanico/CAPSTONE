@@ -170,6 +170,7 @@ export default function Screen(): JSX.Element {
   };
 
 
+
   useEffect(() => {
     fetchItems();
     fetchUnreadCount();
