@@ -273,97 +273,62 @@ export default function History() {
     };
 
     return (
-      <View key={request.id} style={styles.receiptCard}>
-        <View style={styles.receiptHeader}>
-          <View style={styles.headerInfo}>
-            <Text style={styles.receiptTitle}>{request.item?.name || 'Item Request'}</Text>
-            <Text style={styles.receiptSubtitle}>{request.name}</Text>
-            <Text style={styles.receiptDate}>{formatDate(request.date)}</Text>
+      <View key={request.id} style={styles.compactCard}>
+        <View style={styles.cardHeader}>
+          <View style={styles.headerLeft}>
+            <Text style={styles.itemName} numberOfLines={1} ellipsizeMode="tail">{request.item?.name || 'Item Request'}</Text>
+            <Text style={styles.userName} numberOfLines={1} ellipsizeMode="tail">{request.name}</Text>
+            <Text style={styles.dateTime} numberOfLines={1} ellipsizeMode="tail">
+              {formatDate(request.date)} • {formatTime(request.time_in)} - {formatTime(request.time_out)}
+            </Text>
           </View>
-          <View style={styles.headerQrContainer}>
+          <View style={styles.headerRight}>
             <View style={styles.qrWithZoomContainer}>
               <QRCode
                 value={JSON.stringify(qrData)}
-                size={80}
+                size={50}
                 color="#000000"
                 backgroundColor="#FFFFFF"
-                logoSize={20}
-                logoMargin={2}
-                logoBorderRadius={10}
+                logoSize={12}
+                logoMargin={1}
+                logoBorderRadius={6}
               />
               <TouchableOpacity 
                 style={styles.zoomIcon}
                 onPress={() => openZoomModal(JSON.stringify(qrData))}
               >
-                <FontAwesome5 name="search-plus" size={16} color="#fff" />
+                <FontAwesome5 name="search-plus" size={12} color="#fff" />
               </TouchableOpacity>
             </View>
           </View>
         </View>
 
-        <View style={styles.receiptContent}>
-          <View style={styles.qrSection}>
-            {request.itemUnit?.qr_url && (
-              <View style={styles.qrContainer}>
-                <Text style={styles.qrLabel}>Item QR Code</Text>
-                <Image 
-                  source={{ uri: request.itemUnit.qr_url }} 
-                  style={styles.qrImage}
-                  resizeMode="contain"
-                />
-                {request.itemUnit?.unit_code && (
-                  <Text style={styles.unitCode}>Unit Code: {request.itemUnit.unit_code}</Text>
-                )}
-              </View>
-            )}
-          </View>
-
-          <View style={styles.detailsSection}>
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Name:</Text>
-              <Text style={styles.detailValue}>{request.name}</Text>
+        <View style={styles.cardContent}>
+          <View style={styles.infoGrid}>
+            <View style={styles.infoItem}>
+              <Text style={styles.infoLabel}>ID</Text>
+              <Text style={styles.infoValue} numberOfLines={1} ellipsizeMode="tail">{request.borrower_id}</Text>
             </View>
-            
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>School ID:</Text>
-              <Text style={styles.detailValue}>{request.borrower_id}</Text>
+            <View style={styles.infoItem}>
+              <Text style={styles.infoLabel}>Year</Text>
+              <Text style={styles.infoValue} numberOfLines={1} ellipsizeMode="tail">{request.year}</Text>
             </View>
-            
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Year:</Text>
-              <Text style={styles.detailValue}>{request.year}</Text>
+            <View style={styles.infoItem}>
+              <Text style={styles.infoLabel}>Dept</Text>
+              <Text style={styles.infoValue} numberOfLines={1} ellipsizeMode="tail">{request.department}</Text>
             </View>
-            
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Department:</Text>
-              <Text style={styles.detailValue}>{request.department}</Text>
-            </View>
-            
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Course:</Text>
-              <Text style={styles.detailValue}>{request.course}</Text>
-            </View>
-            
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Date:</Text>
-              <Text style={styles.detailValue}>{formatDate(request.date)}</Text>
-            </View>
-            
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Time:</Text>
-              <Text style={styles.detailValue}>
-                {formatTime(request.time_in)} - {formatTime(request.time_out)}
-              </Text>
-            </View>
-              
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Status:</Text>
-              <Text style={[styles.detailValue, styles.returnedText]}>
-                Returned
-              </Text>
+            <View style={styles.infoItem}>
+              <Text style={styles.infoLabel}>Course</Text>
+              <Text style={styles.infoValue} numberOfLines={1} ellipsizeMode="tail">{request.course}</Text>
             </View>
           </View>
-
+          
+          <View style={styles.statusContainer}>
+            <View style={styles.statusBadge}>
+              <FontAwesome5 name="check-circle" size={12} color="#28a745" />
+              <Text style={styles.statusText}>Returned</Text>
+            </View>
+          </View>
         </View>
       </View>
     );
@@ -387,81 +352,62 @@ export default function History() {
     };
 
     return (
-      <View key={request.id} style={styles.receiptCard}>
-        <View style={styles.receiptHeader}>
-          <View style={styles.headerInfo}>
-            <Text style={styles.receiptTitle}>{request.room?.name || 'Room Request'}</Text>
-            <Text style={styles.receiptSubtitle}>{request.name}</Text>
-            <Text style={styles.receiptDate}>{formatDate(request.date)}</Text>
+      <View key={request.id} style={styles.compactCard}>
+        <View style={styles.cardHeader}>
+          <View style={styles.headerLeft}>
+            <Text style={styles.itemName} numberOfLines={1} ellipsizeMode="tail">{request.room?.name || 'Room Request'}</Text>
+            <Text style={styles.userName} numberOfLines={1} ellipsizeMode="tail">{request.name}</Text>
+            <Text style={styles.dateTime} numberOfLines={1} ellipsizeMode="tail">
+              {formatDate(request.date)} • {formatTime(request.time_in)} - {formatTime(request.time_out)}
+            </Text>
           </View>
-          <View style={styles.headerQrContainer}>
+          <View style={styles.headerRight}>
             <View style={styles.qrWithZoomContainer}>
               <QRCode
                 value={JSON.stringify(qrData)}
-                size={80}
+                size={50}
                 color="#000000"
                 backgroundColor="#FFFFFF"
-                logoSize={20}
-                logoMargin={2}
-                logoBorderRadius={10}
+                logoSize={12}
+                logoMargin={1}
+                logoBorderRadius={6}
               />
               <TouchableOpacity 
                 style={styles.zoomIcon}
                 onPress={() => openZoomModal(JSON.stringify(qrData))}
               >
-                <FontAwesome5 name="search-plus" size={16} color="#fff" />
+                <FontAwesome5 name="search-plus" size={12} color="#fff" />
               </TouchableOpacity>
             </View>
           </View>
         </View>
 
-        <View style={styles.receiptContent}>
-          <View style={styles.detailsSection}>
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Name:</Text>
-              <Text style={styles.detailValue}>{request.name}</Text>
+        <View style={styles.cardContent}>
+          <View style={styles.infoGrid}>
+            <View style={styles.infoItem}>
+              <Text style={styles.infoLabel}>ID</Text>
+              <Text style={styles.infoValue} numberOfLines={1} ellipsizeMode="tail">{request.borrower_id}</Text>
             </View>
-            
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>School ID:</Text>
-              <Text style={styles.detailValue}>{request.borrower_id}</Text>
+            <View style={styles.infoItem}>
+              <Text style={styles.infoLabel}>Year</Text>
+              <Text style={styles.infoValue} numberOfLines={1} ellipsizeMode="tail">{request.year}</Text>
             </View>
-            
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Year:</Text>
-              <Text style={styles.detailValue}>{request.year}</Text>
+            <View style={styles.infoItem}>
+              <Text style={styles.infoLabel}>Dept</Text>
+              <Text style={styles.infoValue} numberOfLines={1} ellipsizeMode="tail">{request.department}</Text>
             </View>
-            
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Department:</Text>
-              <Text style={styles.detailValue}>{request.department}</Text>
-            </View>
-            
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Course:</Text>
-              <Text style={styles.detailValue}>{request.course}</Text>
-            </View>
-            
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Date:</Text>
-              <Text style={styles.detailValue}>{formatDate(request.date)}</Text>
-            </View>
-            
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Time:</Text>
-              <Text style={styles.detailValue}>
-                {formatTime(request.time_in)} - {formatTime(request.time_out)}
-              </Text>
-            </View>
-              
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Status:</Text>
-              <Text style={[styles.detailValue, styles.returnedText]}>
-                Returned
-              </Text>
+            <View style={styles.infoItem}>
+              <Text style={styles.infoLabel}>Course</Text>
+              <Text style={styles.infoValue} numberOfLines={1} ellipsizeMode="tail">{request.course}</Text>
             </View>
           </View>
-
+          
+          <View style={styles.statusContainer}>
+            <View style={styles.statusBadge}>
+              <FontAwesome5 name="check-circle" size={12} color="#28a745" />
+              <Text style={styles.statusText}>Returned</Text>
+            </View>
+          </View>
         </View>
       </View>
     );
@@ -825,100 +771,94 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 20,
   },
-  receiptCard: {
+  compactCard: {
     backgroundColor: '#fff',
-    borderRadius: 16,
-    marginBottom: 20,
+    borderRadius: 12,
+    marginBottom: 12,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 6,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 3,
     borderWidth: 1,
     borderColor: '#f1f3f4',
   },
-  receiptHeader: {
+  cardHeader: {
     backgroundColor: '#007e3a',
-    padding: 16,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
+    padding: 12,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  headerInfo: {
+  headerLeft: {
     flex: 1,
-    marginRight: 16,
+    marginRight: 12,
   },
-  receiptTitle: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 4,
+  headerRight: {
+    alignItems: 'center',
   },
-  receiptSubtitle: {
+  itemName: {
     color: '#fff',
     fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 2,
+  },
+  userName: {
+    color: '#fff',
+    fontSize: 14,
     fontWeight: '600',
     marginBottom: 2,
   },
-  receiptDate: {
+  dateTime: {
     color: '#fff',
-    fontSize: 14,
+    fontSize: 12,
     opacity: 0.9,
   },
-  receiptContent: {
-    padding: 20,
+  cardContent: {
+    padding: 12,
   },
-  qrSection: {
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  qrContainer: {
-    alignItems: 'center',
-  },
-  qrLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 10,
-  },
-  qrImage: {
-    width: 120,
-    height: 120,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: '#e9ecef',
-  },
-  unitCode: {
-    fontSize: 12,
-    color: '#666',
-    marginTop: 8,
-    textAlign: 'center',
-    fontFamily: 'monospace',
-  },
-  detailsSection: {
-    gap: 12,
-  },
-  detailRow: {
+  infoGrid: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f1f3f4',
+    flexWrap: 'wrap',
+    marginBottom: 8,
   },
-  detailLabel: {
-    fontSize: 14,
+  infoItem: {
+    width: '50%',
+    paddingVertical: 4,
+    paddingHorizontal: 2,
+  },
+  infoLabel: {
+    fontSize: 11,
     fontWeight: '600',
     color: '#666',
-    flex: 1,
+    marginBottom: 2,
   },
-  detailValue: {
-    fontSize: 14,
+  infoValue: {
+    fontSize: 12,
     color: '#333',
-    flex: 2,
-    textAlign: 'right',
+    fontWeight: '500',
+  },
+  statusContainer: {
+    alignItems: 'flex-end',
+    marginTop: 4,
+  },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#d4edda',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#c3e6cb',
+  },
+  statusText: {
+    fontSize: 11,
+    color: '#28a745',
+    fontWeight: '600',
+    marginLeft: 4,
   },
   emptyContainer: {
     flex: 1,
@@ -968,29 +908,25 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginLeft: 8,
   },
-  headerQrContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   qrWithZoomContainer: {
     position: 'relative',
     alignItems: 'center',
   },
   zoomIcon: {
     position: 'absolute',
-    top: -5,
-    right: -5,
+    top: -3,
+    right: -3,
     backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    borderRadius: 15,
-    width: 30,
-    height: 30,
+    borderRadius: 10,
+    width: 20,
+    height: 20,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 5,
+    shadowRadius: 2,
+    elevation: 3,
   },
   zoomModalOverlay: {
     flex: 1,
