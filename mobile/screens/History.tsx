@@ -253,49 +253,6 @@ export default function History() {
     setZoomQRData('');
   };
 
-  const deleteReturnedRequest = async (requestId: number, type: 'item' | 'room') => {
-    try {
-      Alert.alert(
-        'Delete Returned Request',
-        'Are you sure you want to delete this returned request? This action cannot be undone.',
-        [
-          {
-            text: 'Cancel',
-            style: 'cancel',
-          },
-          {
-            text: 'Delete',
-            style: 'destructive',
-            onPress: async () => {
-              try {
-                console.log(`Deleting returned ${type} request with ID: ${requestId}`);
-                
-                if (type === 'item') {
-                  await API.delete(`/requests/${requestId}`);
-                } else {
-                  await API.delete(`/room-requests/${requestId}`);
-                }
-                
-                showSuccess(
-                  'Success', 
-                  'Returned request has been deleted successfully.'
-                );
-                
-                // Refresh the data
-                fetchReturnedData();
-              } catch (error: any) {
-                console.error(`Error deleting returned ${type} request:`, error);
-                const errorMessage = error.response?.data?.message || `Failed to delete returned ${type} request. Please try again.`;
-                showError('Error', errorMessage);
-              }
-            },
-          },
-        ]
-      );
-    } catch (error) {
-      console.error('Error showing delete dialog:', error);
-    }
-  };
 
   const renderReturnedItemReceipt = (request: ItemRequest) => {
     // Generate QR code data for this receipt
@@ -407,17 +364,6 @@ export default function History() {
             </View>
           </View>
 
-          <View style={styles.deleteButtonSection}>
-            <TouchableOpacity 
-              style={styles.deleteButton}
-              onPress={() => deleteReturnedRequest(request.id, 'item')}
-            >
-              <FontAwesome5 name="trash" size={14} color="#fff" />
-              <Text style={styles.deleteButtonText}>
-                Delete Request
-              </Text>
-            </TouchableOpacity>
-          </View>
         </View>
       </View>
     );
@@ -516,17 +462,6 @@ export default function History() {
             </View>
           </View>
 
-          <View style={styles.deleteButtonSection}>
-            <TouchableOpacity 
-              style={styles.deleteButton}
-              onPress={() => deleteReturnedRequest(request.id, 'room')}
-            >
-              <FontAwesome5 name="trash" size={14} color="#fff" />
-              <Text style={styles.deleteButtonText}>
-                Delete Request
-              </Text>
-            </TouchableOpacity>
-          </View>
         </View>
       </View>
     );
@@ -1007,30 +942,6 @@ const styles = StyleSheet.create({
   returnedText: {
     color: '#28a745',
     fontWeight: '600',
-  },
-  deleteButtonSection: {
-    marginTop: 20,
-    alignItems: 'center',
-  },
-  deleteButton: {
-    backgroundColor: '#dc3545',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  deleteButtonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
-    marginLeft: 8,
   },
   cancelButtonContainer: {
     paddingHorizontal: 20,

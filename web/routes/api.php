@@ -7,6 +7,7 @@ use App\Http\Controllers\API\ItemController;
 use App\Http\Controllers\API\RequestItemController;
 use App\Http\Controllers\API\RoomController;
 use App\Http\Controllers\API\RoomRequestController;
+use App\Http\Controllers\API\NotificationController;
 
 
 /*
@@ -48,6 +49,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('room-requests/{roomRequest}', [RoomRequestController::class, 'update']);
     Route::delete('room-requests/{roomRequest}', [RoomRequestController::class, 'destroy']);
     Route::patch('room-requests/{id}/return', [RoomRequestController::class, 'return']);
+
+    // Notifications
+    Route::get('notifications', [NotificationController::class, 'index']);
+    Route::patch('notifications/{id}/read', [NotificationController::class, 'markAsRead']);
+    Route::patch('notifications/mark-all-read', [NotificationController::class, 'markAllAsRead']);
+    Route::delete('notifications/clear-all', [NotificationController::class, 'clearAll']);
+    Route::get('notifications/unread-count', [NotificationController::class, 'unreadCount']);
 });
 
 Route::middleware('auth:sanctum')->group(function () {

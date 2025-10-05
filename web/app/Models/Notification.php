@@ -114,4 +114,34 @@ class Notification extends Model
             'related_id' => $requestId
         ]);
     }
+
+    /**
+     * Create a notification for item return
+     */
+    public static function createItemReturned($userEmail, $itemName, $requestId = null)
+    {
+        return self::create([
+            'user_email' => $userEmail,
+            'type' => 'success',
+            'title' => 'Request Returned',
+            'message' => "The item is returned thank you",
+            'action_type' => 'item_returned',
+            'related_id' => $requestId
+        ]);
+    }
+
+    /**
+     * Create a notification for room returned
+     */
+    public static function createRoomReturned($userEmail, $roomName, $requestId = null)
+    {
+        return self::create([
+            'user_email' => $userEmail,
+            'type' => 'success',
+            'title' => 'Request Returned',
+            'message' => "The item is returned thank you",
+            'action_type' => 'room_returned',
+            'related_id' => $requestId
+        ]);
+    }
 }

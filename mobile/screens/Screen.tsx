@@ -29,6 +29,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import SimpleAlert from '../src/components/SimpleAlert';
 import { useCustomAlert } from '../src/hooks/useCustomAlert';
+import NotificationModal from '../src/components/NotificationModal';
+import NotificationService from '../src/notificationService';
 
 const { width, height } = Dimensions.get('window');
 
@@ -137,6 +139,10 @@ export default function Screen(): JSX.Element {
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
   
+  // Notification states
+  const [showNotificationModal, setShowNotificationModal] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+  
   // Custom alert hook
   const { alertState, showSuccess, showError, showWarning, showInfo, hideAlert } = useCustomAlert();
 
@@ -154,8 +160,28 @@ export default function Screen(): JSX.Element {
     }
   };
 
+  const fetchUnreadCount = async () => {
+    try {
+      const count = await NotificationService.getUnreadCount();
+      setUnreadCount(count);
+    } catch (error) {
+      console.error("Error fetching unread count:", error);
+    }
+  };
+
+
   useEffect(() => {
     fetchItems();
+    fetchUnreadCount();
+  }, []);
+
+  // Set up polling for notifications every 30 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchUnreadCount();
+    }, 30000); // Poll every 30 seconds
+
+    return () => clearInterval(interval);
   }, []);
 
   useImmersiveMode();
@@ -277,9 +303,16 @@ export default function Screen(): JSX.Element {
             </View>
             <TouchableOpacity 
               style={styles.bellContainer}
-              onPress={() => Alert.alert('Notifications', 'Notification feature coming soon!')}
+              onPress={() => setShowNotificationModal(true)}
             >
               <FontAwesome name="bell" size={20} color="#007e3a" />
+              {unreadCount > 0 && (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </Text>
+                </View>
+              )}
             </TouchableOpacity>
           </View>
 
@@ -480,6 +513,15 @@ export default function Screen(): JSX.Element {
 
       <Footer />
       
+      {/* Notification Modal */}
+      <NotificationModal
+        visible={showNotificationModal}
+        onClose={() => {
+          setShowNotificationModal(false);
+          fetchUnreadCount(); // Refresh count when modal closes
+        }}
+      />
+      
       {/* Simple Alert */}
       <SimpleAlert
         visible={alertState.visible}
@@ -592,6 +634,26 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 3,
     elevation: 2,
+    position: 'relative',
+  },
+  badge: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    backgroundColor: '#dc3545',
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'white',
+  },
+  badgeText: {
+    color: 'white',
+    fontSize: 10,
+    fontWeight: 'bold',
+    textAlign: 'center',
   },
   sectionTitle: {
     marginHorizontal: 15,

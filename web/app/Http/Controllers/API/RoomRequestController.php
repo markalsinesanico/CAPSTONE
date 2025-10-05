@@ -5,6 +5,7 @@ namespace App\Http\Controllers\API;
 use App\Http\Controllers\Controller;
 use App\Models\RoomRequest;
 use App\Models\Room;
+use App\Models\Notification;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -83,11 +84,43 @@ class RoomRequestController extends Controller
             $roomRequest = RoomRequest::findOrFail($id);
             $roomRequest->update(['returned' => true]);
             
+            // Create notification for the user about room return
+            if ($roomRequest->email) {
+                \Illuminate\Support\Facades\Log::info('Creating notification for room return', [
+                    'user_email' => $roomRequest->email,
+                    'room_name' => $roomRequest->room->name,
+                    'request_id' => $roomRequest->id
+                ]);
+                
+                try {
+                    $notification = Notification::createRoomReturned(
+                        $roomRequest->email,
+                        $roomRequest->room->name,
+                        $roomRequest->id
+                    );
+                    \Illuminate\Support\Facades\Log::info('Notification created successfully', [
+                        'notification_id' => $notification->id,
+                        'user_email' => $notification->user_email
+                    ]);
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::error('Failed to create notification', [
+                        'error' => $e->getMessage(),
+                        'user_email' => $roomRequest->email
+                    ]);
+                }
+            } else {
+                \Illuminate\Support\Facades\Log::warning('No email found for room request', [
+                    'request_id' => $roomRequest->id,
+                    'request_data' => $roomRequest->toArray()
+                ]);
+            }
+            
             // Log the update for debugging
             \Illuminate\Support\Facades\Log::info('Room marked as returned', [
                 'id' => $id,
                 'returned' => $roomRequest->returned,
-                'updated_at' => $roomRequest->updated_at
+                'updated_at' => $roomRequest->updated_at,
+                'notification_created' => $roomRequest->email ? 'yes' : 'no'
             ]);
             
             return response()->json(['message' => 'Room marked as returned', 'id' => $id, 'returned' => $roomRequest->returned]);

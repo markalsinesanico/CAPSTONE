@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\RequestItem;
 use App\Models\Item;
+use App\Models\Notification;
 
 class RequestItemController extends Controller
 {
@@ -112,11 +113,43 @@ class RequestItemController extends Controller
             $requestItem = RequestItem::findOrFail($id);
             $requestItem->update(['returned' => true]);
             
+            // Create notification for the user about item return
+            if ($requestItem->email) {
+                \Illuminate\Support\Facades\Log::info('Creating notification for item return', [
+                    'user_email' => $requestItem->email,
+                    'item_name' => $requestItem->item->name,
+                    'request_id' => $requestItem->id
+                ]);
+                
+                try {
+                    $notification = Notification::createItemReturned(
+                        $requestItem->email,
+                        $requestItem->item->name,
+                        $requestItem->id
+                    );
+                    \Illuminate\Support\Facades\Log::info('Notification created successfully', [
+                        'notification_id' => $notification->id,
+                        'user_email' => $notification->user_email
+                    ]);
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::error('Failed to create notification', [
+                        'error' => $e->getMessage(),
+                        'user_email' => $requestItem->email
+                    ]);
+                }
+            } else {
+                \Illuminate\Support\Facades\Log::warning('No email found for request item', [
+                    'request_id' => $requestItem->id,
+                    'request_data' => $requestItem->toArray()
+                ]);
+            }
+            
             // Log the update for debugging
             \Illuminate\Support\Facades\Log::info('Item marked as returned', [
                 'id' => $id,
                 'returned' => $requestItem->returned,
-                'updated_at' => $requestItem->updated_at
+                'updated_at' => $requestItem->updated_at,
+                'notification_created' => $requestItem->email ? 'yes' : 'no'
             ]);
             
             return response()->json(['message' => 'Item marked as returned', 'id' => $id, 'returned' => $requestItem->returned]);
