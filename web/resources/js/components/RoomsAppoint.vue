@@ -331,8 +331,9 @@ export default {
     filteredRoomRequests() {
       const q = this.search.toLowerCase();
       return this.roomRequests.filter(r =>
-        (r.name || '').toLowerCase().includes(q) ||
-        (r.course || '').toLowerCase().includes(q)
+        ((r.name || '').toLowerCase().includes(q) ||
+        (r.course || '').toLowerCase().includes(q)) &&
+        !r.returned // Filter out returned room requests
       );
     },
   },

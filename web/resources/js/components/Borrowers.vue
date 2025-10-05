@@ -362,7 +362,8 @@ export default {
     },
     filteredBorrowers() {
       return this.borrowers.filter(b =>
-        b.name?.toLowerCase().includes(this.search.toLowerCase())
+        b.name?.toLowerCase().includes(this.search.toLowerCase()) &&
+        !b.returned // Filter out returned items
       );
     },
   },
