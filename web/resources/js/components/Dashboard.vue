@@ -25,9 +25,9 @@
       </header>
 
       <section class="stats">
-        <div class="card">Number Of Borrowers<br><span>27</span></div>
-        <div class="card">Number Of Rooms<br><span>3</span></div>
-        <div class="card">Number Of Item<br><span>4</span></div>
+        <div class="card">Number Of Rooms<br><span>{{ rooms.length }}</span></div>
+        <div class="card">Number Of Items<br><span>{{ items.length }}</span></div>
+        <div class="card">Returned Items<br><span>{{ returnedItemsCount }}</span></div>
       </section>
 
       <section class="content">
@@ -226,6 +226,7 @@ export default {
       roomRequests: [],
       rooms: [],
       items: [],
+      returnedItemsCount: 0,
       sortBy: 'EQUIPMENT',
       events: [], // <-- REMOVE all hardcoded events, keep as empty array
 
@@ -825,7 +826,8 @@ export default {
           this.fetchBorrowers(),
           this.fetchRoomRequests(),
           this.fetchRooms(),
-          this.fetchItems()
+          this.fetchItems(),
+          this.fetchReturnedItemsCount()
         ]);
         console.log('Data refreshed successfully');
         this.qrResult = 'Data refreshed successfully!';
@@ -953,6 +955,27 @@ export default {
         this.showCustomAlert('error', 'Error!', 'Failed to fetch items.');
       }
     },
+    async fetchReturnedItemsCount() {
+      try {
+        // Fetch returned equipment requests
+        const equipmentRes = await axios.get("/api/requests");
+        const returnedEquipment = equipmentRes.data.filter(item => 
+          item.returned === true || item.returned === 1 || item.returned === "1"
+        );
+
+        // Fetch returned room requests
+        const roomRes = await axios.get("/api/room-requests");
+        const returnedRooms = roomRes.data.filter(item => 
+          item.returned === true || item.returned === 1 || item.returned === "1"
+        );
+
+        // Count total returned items
+        this.returnedItemsCount = returnedEquipment.length + returnedRooms.length;
+      } catch (error) {
+        console.error('Error fetching returned items count:', error);
+        this.showCustomAlert('error', 'Error!', 'Failed to fetch returned items count.');
+      }
+    },
     updateSchedule() {
       // Logic to update the schedule based on sortBy selection
       // This could involve fetching data again or sorting the existing data
@@ -976,6 +999,7 @@ export default {
     this.fetchRoomRequests();
     this.fetchRooms();
     this.fetchItems();
+    this.fetchReturnedItemsCount();
   }
 };
 </script>

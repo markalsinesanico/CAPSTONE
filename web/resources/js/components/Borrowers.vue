@@ -83,7 +83,7 @@
               <td>{{ borrower.year }}</td>
               <td>{{ borrower.department }}</td>
               <td>{{ borrower.course }}</td>
-              <td>{{ borrower.date }}</td>
+              <td>{{ formatDate(borrower.date) }}</td>
              <td>{{ formatTime(borrower.time_in) }}</td>
             <td>{{ formatTime(borrower.time_out) }}</td>
               <td>{{ borrower.item?.name || 'N/A' }}</td>
@@ -399,6 +399,12 @@ export default {
     const suffix = h >= 12 ? "PM" : "AM";
     const formattedHour = ((h + 11) % 12 + 1); // convert to 12-hour format
     return `${formattedHour}:${minutes} ${suffix}`;
+  },
+  formatDate(dateString) {
+    if (!dateString) return "";
+    // Remove time portion and format as YYYY-MM-DD
+    const date = new Date(dateString);
+    return date.toISOString().split('T')[0];
   },
   
     async fetchBorrowers() {
