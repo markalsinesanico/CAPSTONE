@@ -36,6 +36,7 @@ interface ItemRequest {
   time_in: string;
   time_out: string;
   type: 'item';
+  returned?: boolean;
   item?: {
     id: number;
     name: string;
@@ -59,6 +60,7 @@ interface RoomRequest {
   time_in: string;
   time_out: string;
   type: 'room';
+  returned?: boolean;
   room?: {
     id: number;
     name: string;
@@ -287,20 +289,32 @@ export default function Receipt() {
 
   const cancelRequest = async (requestId: number, type: 'item' | 'room') => {
     try {
+      // Find the request to check if it's returned
+      const allRequests = type === 'item' ? itemRequests : roomRequests;
+      const request = allRequests.find(r => r.id === requestId);
+      const isReturned = request?.returned;
+      
+      const action = isReturned ? 'delete' : 'cancel';
+      const actionText = isReturned ? 'delete' : 'cancel';
+      const actionTitle = isReturned ? 'Delete Request' : 'Cancel Request';
+      const actionMessage = isReturned 
+        ? 'Are you sure you want to delete this returned request? This action cannot be undone.'
+        : 'Are you sure you want to cancel this request? This action cannot be undone.';
+      
       Alert.alert(
-        'Cancel Request',
-        'Are you sure you want to cancel this request? This action cannot be undone.',
+        actionTitle,
+        actionMessage,
         [
           {
             text: 'No',
             style: 'cancel',
           },
           {
-            text: 'Yes, Cancel',
+            text: `Yes, ${actionText.charAt(0).toUpperCase() + actionText.slice(1)}`,
             style: 'destructive',
             onPress: async () => {
               try {
-                console.log(`Cancelling ${type} request with ID: ${requestId}`);
+                console.log(`${actionText.charAt(0).toUpperCase() + actionText.slice(1)}ing ${type} request with ID: ${requestId}`);
                 
                 if (type === 'item') {
                   await API.delete(`/requests/${requestId}`);
@@ -310,7 +324,7 @@ export default function Receipt() {
                 
                 Alert.alert(
                   'Success', 
-                  'Your request has been cancelled successfully.',
+                  `Your request has been ${actionText}ed successfully.`,
                   [
                     {
                       text: 'OK',
@@ -322,8 +336,8 @@ export default function Receipt() {
                   ]
                 );
               } catch (error: any) {
-                console.error('Error cancelling request:', error);
-                const errorMessage = error.response?.data?.message || 'Failed to cancel request. Please try again.';
+                console.error(`Error ${actionText}ing request:`, error);
+                const errorMessage = error.response?.data?.message || `Failed to ${actionText} request. Please try again.`;
                 Alert.alert('Error', errorMessage);
               }
             },
@@ -331,7 +345,7 @@ export default function Receipt() {
         ]
       );
     } catch (error) {
-      console.error('Error showing cancel dialog:', error);
+      console.error('Error showing action dialog:', error);
     }
   };
 
@@ -449,15 +463,24 @@ export default function Receipt() {
                 {formatTime(request.time_in)} - {formatTime(request.time_out)}
               </Text>
             </View>
+            
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Status:</Text>
+              <Text style={[styles.detailValue, request.returned ? styles.returnedText : styles.pendingText]}>
+                {request.returned ? 'Returned' : 'Pending'}
+              </Text>
+            </View>
           </View>
 
           <View style={styles.cancelButtonSection}>
             <TouchableOpacity 
-              style={styles.cancelRequestButton}
+              style={[styles.cancelRequestButton, request.returned && styles.deleteButton]}
               onPress={() => cancelRequest(request.id, 'item')}
             >
-              <FontAwesome5 name="times" size={14} color="#fff" />
-              <Text style={styles.cancelRequestButtonText}>Cancel Request</Text>
+              <FontAwesome5 name={request.returned ? "trash" : "times"} size={14} color="#fff" />
+              <Text style={styles.cancelRequestButtonText}>
+                {request.returned ? 'Delete Request' : 'Cancel Request'}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -552,15 +575,24 @@ export default function Receipt() {
                 {formatTime(request.time_in)} - {formatTime(request.time_out)}
               </Text>
             </View>
+            
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Status:</Text>
+              <Text style={[styles.detailValue, request.returned ? styles.returnedText : styles.pendingText]}>
+                {request.returned ? 'Returned' : 'Pending'}
+              </Text>
+            </View>
           </View>
 
           <View style={styles.cancelButtonSection}>
             <TouchableOpacity 
-              style={styles.cancelRequestButton}
+              style={[styles.cancelRequestButton, request.returned && styles.deleteButton]}
               onPress={() => cancelRequest(request.id, 'room')}
             >
-              <FontAwesome5 name="times" size={14} color="#fff" />
-              <Text style={styles.cancelRequestButtonText}>Cancel Request</Text>
+              <FontAwesome5 name={request.returned ? "trash" : "times"} size={14} color="#fff" />
+              <Text style={styles.cancelRequestButtonText}>
+                {request.returned ? 'Delete Request' : 'Cancel Request'}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -1063,6 +1095,17 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#007e3a',
+  },
+  returnedText: {
+    color: '#28a745',
+    fontWeight: '600',
+  },
+  pendingText: {
+    color: '#ffc107',
+    fontWeight: '600',
+  },
+  deleteButton: {
+    backgroundColor: '#dc3545',
   },
   cancelButtonContainer: {
     paddingHorizontal: 20,
