@@ -32,6 +32,8 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { LinearGradient } from 'expo-linear-gradient';
 import { FontAwesome5 } from '@expo/vector-icons';
+import SimpleAlert from '../src/components/SimpleAlert';
+import { useCustomAlert } from '../src/hooks/useCustomAlert';
 
 const { width, height } = Dimensions.get('window');
 
@@ -129,6 +131,9 @@ export default function Rooms(): JSX.Element {
 
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Custom alert hook
+  const { alertState, showSuccess, showError, showWarning, showInfo, hideAlert } = useCustomAlert();
 
   const [selectedRoom, setSelectedRoom] = useState<string>("");
   const [isModalVisible, setModalVisible] = useState<boolean>(false);
@@ -268,7 +273,7 @@ const handleTimeChange = (type: "timeIn" | "timeOut") => (event: DateTimePickerE
       const response = await API.post('/room-requests', requestData);
 
       if (response.status === 201) {
-        Alert.alert('Success', 'Room booking request has been submitted successfully.');
+        showSuccess('Success', 'Room booking request has been submitted successfully.');
         // Reset form
         setFullName('');
         setIdNumber('');
@@ -305,7 +310,7 @@ const handleTimeChange = (type: "timeIn" | "timeOut") => (event: DateTimePickerE
         }
       }
       
-      Alert.alert(errorTitle, errorMessage);
+      showError(errorTitle, errorMessage);
     }
   };
 
@@ -509,7 +514,15 @@ const handleTimeChange = (type: "timeIn" | "timeOut") => (event: DateTimePickerE
           )}
       </View>
       <Footer />
-
+      
+      {/* Simple Alert */}
+      <SimpleAlert
+        visible={alertState.visible}
+        type={alertState.type}
+        title={alertState.title}
+        message={alertState.message}
+        onClose={hideAlert}
+      />
     </View>
   );
 }

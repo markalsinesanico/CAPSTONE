@@ -27,6 +27,8 @@ import { Picker } from "@react-native-picker/picker";
 import API from "../src/api";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
+import SimpleAlert from '../src/components/SimpleAlert';
+import { useCustomAlert } from '../src/hooks/useCustomAlert';
 
 const { width, height } = Dimensions.get('window');
 
@@ -134,6 +136,9 @@ export default function Screen(): JSX.Element {
   // API items
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Custom alert hook
+  const { alertState, showSuccess, showError, showWarning, showInfo, hideAlert } = useCustomAlert();
 
 
   const fetchItems = async () => {
@@ -215,13 +220,13 @@ export default function Screen(): JSX.Element {
 
       await API.post("/requests", requestData);
 
-      Alert.alert("Success", "Request submitted successfully!");
+      showSuccess("Success", "Request submitted successfully!");
       setModalVisible(false);
       resetForm();
     } catch (error: any) {
       console.error("Error submitting request:", error);
       const errorMessage = error.response?.data?.message || error.message || "Failed to submit request. Please try again.";
-      Alert.alert("Error", errorMessage);
+      showError("Error", errorMessage);
     }
   };
 
@@ -474,6 +479,15 @@ export default function Screen(): JSX.Element {
       </Modal>
 
       <Footer />
+      
+      {/* Simple Alert */}
+      <SimpleAlert
+        visible={alertState.visible}
+        type={alertState.type}
+        title={alertState.title}
+        message={alertState.message}
+        onClose={hideAlert}
+      />
     </SafeAreaView>
   );
 }

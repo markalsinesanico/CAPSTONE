@@ -22,6 +22,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../App';
+import SimpleAlert from '../src/components/SimpleAlert';
+import { useCustomAlert } from '../src/hooks/useCustomAlert';
 
 const { width } = Dimensions.get('window');
 
@@ -77,6 +79,32 @@ export default function Receipt() {
   const [userInfo, setUserInfo] = useState<any>(null);
   const [zoomModalVisible, setZoomModalVisible] = useState(false);
   const [zoomQRData, setZoomQRData] = useState<string>('');
+  
+  // Custom alert hook
+  const { alertState, showSuccess, showError, showWarning, showInfo, hideAlert } = useCustomAlert();
+  
+  // Debug alert state
+  useEffect(() => {
+    console.log('Receipt: Alert state changed:', alertState);
+  }, [alertState]);
+
+  // Test function for alerts
+  const testAlerts = () => {
+    console.log('Testing alerts...');
+    showSuccess('Test Success', 'This is a success alert!');
+    setTimeout(() => {
+      console.log('Showing error alert...');
+      showError('Test Error', 'This is an error alert!');
+    }, 2000);
+    setTimeout(() => {
+      console.log('Showing warning alert...');
+      showWarning('Test Warning', 'This is a warning alert!');
+    }, 4000);
+    setTimeout(() => {
+      console.log('Showing info alert...');
+      showInfo('Test Info', 'This is an info alert!');
+    }, 6000);
+  };
 
 
   // Use immersive mode hook
@@ -172,7 +200,7 @@ export default function Receipt() {
       console.log('User email:', currentUserEmail);
       
       if (!token) {
-        Alert.alert('Authentication Required', 'Please log in to view your receipts.');
+        showWarning('Authentication Required', 'Please log in to view your receipts.');
         setLoading(false);
         return;
       }
@@ -182,22 +210,22 @@ export default function Receipt() {
       
       try {
         console.log('Attempting to fetch requests...');
-        [itemRes, roomRes] = await Promise.all([
-          API.get('/requests'),
-          API.get('/room-requests')
-        ]);
+          [itemRes, roomRes] = await Promise.all([
+            API.get('/requests'),
+            API.get('/room-requests')
+          ]);
         
         console.log('Item requests response:', itemRes.data);
         console.log('Room requests response:', roomRes.data);
         
       } catch (error: any) {
         console.error('Error fetching requests:', error.response?.data || error.message);
-        Alert.alert(
-          'Error Fetching Data', 
-          `Failed to fetch receipts.\n\nError: ${error.response?.data?.message || error.message}\n\nPlease check your connection and try again.`
-        );
-        setLoading(false);
-        return;
+        showError(
+            'Error Fetching Data', 
+          `Failed to fetch receipts. Please check your connection and try again.\n\nError: ${error.response?.data?.message || error.message}`
+          );
+          setLoading(false);
+          return;
       }
       
       // Handle the data with better parsing
@@ -207,7 +235,7 @@ export default function Receipt() {
       // Handle item requests - try multiple data structures
       if (itemRes && itemRes.data) {
         if (Array.isArray(itemRes.data)) {
-          itemData = itemRes.data;
+        itemData = itemRes.data;
         } else if (itemRes.data.data && Array.isArray(itemRes.data.data)) {
           itemData = itemRes.data.data;
         } else if (itemRes.data.requests && Array.isArray(itemRes.data.requests)) {
@@ -217,8 +245,8 @@ export default function Receipt() {
       
       // Handle room requests - try multiple data structures
       if (roomRes && roomRes.data) {
-        if (Array.isArray(roomRes.data)) {
-          roomData = roomRes.data;
+      if (Array.isArray(roomRes.data)) {
+        roomData = roomRes.data;
         } else if (roomRes.data.data && Array.isArray(roomRes.data.data)) {
           roomData = roomRes.data.data;
         } else if (roomRes.data.requests && Array.isArray(roomRes.data.requests)) {
@@ -262,7 +290,7 @@ export default function Receipt() {
       console.error('Unexpected error in fetchData:', error);
       setItemRequests([]);
       setRoomRequests([]);
-      Alert.alert('Error', 'Failed to load receipts. Please try again.');
+      showError('Error', 'Failed to load receipts. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -322,23 +350,16 @@ export default function Receipt() {
                   await API.delete(`/room-requests/${requestId}`);
                 }
                 
-                Alert.alert(
+                showSuccess(
                   'Success', 
-                  `Your request has been ${actionText}ed successfully.`,
-                  [
-                    {
-                      text: 'OK',
-                      onPress: () => {
+                  `Your request has been ${actionText}ed successfully.`
+                );
                         // Refresh the data
                         fetchData();
-                      }
-                    }
-                  ]
-                );
               } catch (error: any) {
                 console.error(`Error ${actionText}ing request:`, error);
                 const errorMessage = error.response?.data?.message || `Failed to ${actionText} request. Please try again.`;
-                Alert.alert('Error', errorMessage);
+                showError('Error', errorMessage);
               }
             },
           },
@@ -409,84 +430,84 @@ export default function Receipt() {
           </View>
         </View>
 
-        <View style={styles.receiptContent}>
-          <View style={styles.qrSection}>
-            {request.itemUnit?.qr_url && (
-              <View style={styles.qrContainer}>
-                <Text style={styles.qrLabel}>Item QR Code</Text>
-                <Image 
-                  source={{ uri: request.itemUnit.qr_url }} 
-                  style={styles.qrImage}
-                  resizeMode="contain"
-                />
-                {request.itemUnit?.unit_code && (
-                  <Text style={styles.unitCode}>Unit Code: {request.itemUnit.unit_code}</Text>
-                )}
-              </View>
-            )}
-          </View>
+      <View style={styles.receiptContent}>
+        <View style={styles.qrSection}>
+          {request.itemUnit?.qr_url && (
+            <View style={styles.qrContainer}>
+              <Text style={styles.qrLabel}>Item QR Code</Text>
+              <Image 
+                source={{ uri: request.itemUnit.qr_url }} 
+                style={styles.qrImage}
+                resizeMode="contain"
+              />
+              {request.itemUnit?.unit_code && (
+                <Text style={styles.unitCode}>Unit Code: {request.itemUnit.unit_code}</Text>
+              )}
+            </View>
+          )}
+        </View>
 
-          <View style={styles.detailsSection}>
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Name:</Text>
-              <Text style={styles.detailValue}>{request.name}</Text>
-            </View>
-            
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>School ID:</Text>
-              <Text style={styles.detailValue}>{request.borrower_id}</Text>
-            </View>
-            
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Year:</Text>
-              <Text style={styles.detailValue}>{request.year}</Text>
-            </View>
-            
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Department:</Text>
-              <Text style={styles.detailValue}>{request.department}</Text>
-            </View>
-            
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Course:</Text>
-              <Text style={styles.detailValue}>{request.course}</Text>
-            </View>
-            
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Date:</Text>
-              <Text style={styles.detailValue}>{formatDate(request.date)}</Text>
-            </View>
-            
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Time:</Text>
-              <Text style={styles.detailValue}>
-                {formatTime(request.time_in)} - {formatTime(request.time_out)}
-              </Text>
-            </View>
+        <View style={styles.detailsSection}>
+          <View style={styles.detailRow}>
+            <Text style={styles.detailLabel}>Name:</Text>
+            <Text style={styles.detailValue}>{request.name}</Text>
+          </View>
+          
+          <View style={styles.detailRow}>
+            <Text style={styles.detailLabel}>School ID:</Text>
+            <Text style={styles.detailValue}>{request.borrower_id}</Text>
+          </View>
+          
+          <View style={styles.detailRow}>
+            <Text style={styles.detailLabel}>Year:</Text>
+            <Text style={styles.detailValue}>{request.year}</Text>
+          </View>
+          
+          <View style={styles.detailRow}>
+            <Text style={styles.detailLabel}>Department:</Text>
+            <Text style={styles.detailValue}>{request.department}</Text>
+          </View>
+          
+          <View style={styles.detailRow}>
+            <Text style={styles.detailLabel}>Course:</Text>
+            <Text style={styles.detailValue}>{request.course}</Text>
+          </View>
+          
+          <View style={styles.detailRow}>
+            <Text style={styles.detailLabel}>Date:</Text>
+            <Text style={styles.detailValue}>{formatDate(request.date)}</Text>
+          </View>
+          
+          <View style={styles.detailRow}>
+            <Text style={styles.detailLabel}>Time:</Text>
+            <Text style={styles.detailValue}>
+              {formatTime(request.time_in)} - {formatTime(request.time_out)}
+            </Text>
+          </View>
             
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>Status:</Text>
               <Text style={[styles.detailValue, request.returned ? styles.returnedText : styles.pendingText]}>
                 {request.returned ? 'Returned' : 'Pending'}
-              </Text>
-            </View>
+            </Text>
           </View>
+        </View>
 
-          <View style={styles.cancelButtonSection}>
-            <TouchableOpacity 
+        <View style={styles.cancelButtonSection}>
+          <TouchableOpacity 
               style={[styles.cancelRequestButton, request.returned && styles.deleteButton]}
-              onPress={() => cancelRequest(request.id, 'item')}
-            >
+            onPress={() => cancelRequest(request.id, 'item')}
+          >
               <FontAwesome5 name={request.returned ? "trash" : "times"} size={14} color="#fff" />
               <Text style={styles.cancelRequestButtonText}>
                 {request.returned ? 'Delete Request' : 'Cancel Request'}
               </Text>
-            </TouchableOpacity>
-          </View>
+          </TouchableOpacity>
         </View>
       </View>
-    );
-  };
+    </View>
+  );
+};
 
   const renderRoomReceipt = (request: RoomRequest) => {
     // Generate QR code data for this room receipt
@@ -537,66 +558,66 @@ export default function Receipt() {
           </View>
         </View>
 
-        <View style={styles.receiptContent}>
-          <View style={styles.detailsSection}>
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Name:</Text>
-              <Text style={styles.detailValue}>{request.name}</Text>
-            </View>
-            
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>School ID:</Text>
-              <Text style={styles.detailValue}>{request.borrower_id}</Text>
-            </View>
-            
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Year:</Text>
-              <Text style={styles.detailValue}>{request.year}</Text>
-            </View>
-            
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Department:</Text>
-              <Text style={styles.detailValue}>{request.department}</Text>
-            </View>
-            
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Course:</Text>
-              <Text style={styles.detailValue}>{request.course}</Text>
-            </View>
-            
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Date:</Text>
-              <Text style={styles.detailValue}>{formatDate(request.date)}</Text>
-            </View>
-            
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Time:</Text>
-              <Text style={styles.detailValue}>
-                {formatTime(request.time_in)} - {formatTime(request.time_out)}
-              </Text>
-            </View>
+      <View style={styles.receiptContent}>
+        <View style={styles.detailsSection}>
+          <View style={styles.detailRow}>
+            <Text style={styles.detailLabel}>Name:</Text>
+            <Text style={styles.detailValue}>{request.name}</Text>
+          </View>
+          
+          <View style={styles.detailRow}>
+            <Text style={styles.detailLabel}>School ID:</Text>
+            <Text style={styles.detailValue}>{request.borrower_id}</Text>
+          </View>
+          
+          <View style={styles.detailRow}>
+            <Text style={styles.detailLabel}>Year:</Text>
+            <Text style={styles.detailValue}>{request.year}</Text>
+          </View>
+          
+          <View style={styles.detailRow}>
+            <Text style={styles.detailLabel}>Department:</Text>
+            <Text style={styles.detailValue}>{request.department}</Text>
+          </View>
+          
+          <View style={styles.detailRow}>
+            <Text style={styles.detailLabel}>Course:</Text>
+            <Text style={styles.detailValue}>{request.course}</Text>
+          </View>
+          
+          <View style={styles.detailRow}>
+            <Text style={styles.detailLabel}>Date:</Text>
+            <Text style={styles.detailValue}>{formatDate(request.date)}</Text>
+          </View>
+          
+          <View style={styles.detailRow}>
+            <Text style={styles.detailLabel}>Time:</Text>
+            <Text style={styles.detailValue}>
+              {formatTime(request.time_in)} - {formatTime(request.time_out)}
+            </Text>
+          </View>
             
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>Status:</Text>
               <Text style={[styles.detailValue, request.returned ? styles.returnedText : styles.pendingText]}>
                 {request.returned ? 'Returned' : 'Pending'}
-              </Text>
-            </View>
+            </Text>
           </View>
+        </View>
 
-          <View style={styles.cancelButtonSection}>
-            <TouchableOpacity 
+        <View style={styles.cancelButtonSection}>
+          <TouchableOpacity 
               style={[styles.cancelRequestButton, request.returned && styles.deleteButton]}
-              onPress={() => cancelRequest(request.id, 'room')}
-            >
+            onPress={() => cancelRequest(request.id, 'room')}
+          >
               <FontAwesome5 name={request.returned ? "trash" : "times"} size={14} color="#fff" />
               <Text style={styles.cancelRequestButtonText}>
                 {request.returned ? 'Delete Request' : 'Cancel Request'}
               </Text>
-            </TouchableOpacity>
-          </View>
+          </TouchableOpacity>
         </View>
       </View>
+    </View>
     );
   };
 
@@ -677,6 +698,15 @@ export default function Receipt() {
                 <FontAwesome5 name="sync-alt" size={14} color="#007e3a" />
                 <Text style={styles.retryButtonText}>Try Again</Text>
               </TouchableOpacity>
+              
+              {/* Test Alert Button */}
+              <TouchableOpacity 
+                style={styles.testAlertButton}
+                onPress={testAlerts}
+              >
+                <FontAwesome5 name="bell" size={14} color="#007e3a" />
+                <Text style={styles.testAlertButtonText}>Test Alerts</Text>
+              </TouchableOpacity>
             </View>
           )
         ) : (
@@ -748,6 +778,14 @@ export default function Receipt() {
         </View>
       </Modal>
 
+      {/* Simple Alert */}
+      <SimpleAlert
+        visible={alertState.visible}
+        type={alertState.type}
+        title={alertState.title}
+        message={alertState.message}
+        onClose={hideAlert}
+      />
     </View>
   );
 }
@@ -1095,6 +1133,24 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#007e3a',
+  },
+  testAlertButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#f8f9fa',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#007e3a',
+    marginTop: 10,
+  },
+  testAlertButtonText: {
+    color: '#007e3a',
+    fontSize: 14,
+    fontWeight: '600',
+    marginLeft: 6,
   },
   returnedText: {
     color: '#28a745',

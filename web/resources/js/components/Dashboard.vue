@@ -170,8 +170,8 @@
       </div>
     </div>
 
-    <!-- Custom Alert System -->
-    <div v-if="showAlert" class="custom-alert" :class="alertType">
+    <!-- Enhanced Custom Alert System -->
+    <div v-if="showAlert" class="custom-alert" :class="alertType" :style="alertStyle">
       <div class="alert-content">
         <div class="alert-icon">
           <span v-if="alertType === 'success'">✅</span>
@@ -246,10 +246,17 @@ export default {
       showAlert: false,
       alertType: 'info', // success, error, warning, info
       alertTitle: '',
-      alertMessage: ''
+      alertMessage: '',
+      alertDuration: 5000
     };
   },
   computed: {
+    alertStyle() {
+      return {
+        animation: this.showAlert ? 'slideInRight 0.3s ease-out' : 'slideOutRight 0.3s ease-in',
+        transform: this.showAlert ? 'translateX(0)' : 'translateX(100%)'
+      };
+    },
     processedEvents() {
       let eventsToMap = [];
       if (this.sortBy === 'ROOMS') {
@@ -895,11 +902,12 @@ export default {
       console.log('This should open the Event Details modal with all request information');
       this.processQRCode(testQRString);
     },
-    // Custom Alert Methods
+    // Enhanced Custom Alert Methods
     showCustomAlert(type, title, message, duration = 5000) {
       this.alertType = type;
       this.alertTitle = title;
       this.alertMessage = message;
+      this.alertDuration = duration;
       this.showAlert = true;
       
       // Auto-hide after duration
@@ -908,6 +916,18 @@ export default {
           this.closeAlert();
         }, duration);
       }
+    },
+    showSuccess(title, message, duration = 4000) {
+      this.showCustomAlert('success', title, message, duration);
+    },
+    showError(title, message, duration = 6000) {
+      this.showCustomAlert('error', title, message, duration);
+    },
+    showWarning(title, message, duration = 5000) {
+      this.showCustomAlert('warning', title, message, duration);
+    },
+    showInfo(title, message, duration = 4000) {
+      this.showCustomAlert('info', title, message, duration);
     },
     closeAlert() {
       this.showAlert = false;
@@ -1521,7 +1541,7 @@ export default {
   }
 }
 
-/* Custom Alert System */
+/* Enhanced Custom Alert System */
 .custom-alert {
   position: fixed;
   top: 20px;
@@ -1529,9 +1549,11 @@ export default {
   z-index: 10000;
   max-width: 400px;
   min-width: 300px;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
   animation: slideInRight 0.3s ease-out;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .custom-alert.success {
@@ -1615,6 +1637,33 @@ export default {
     transform: translateX(0);
     opacity: 1;
   }
+}
+
+@keyframes slideOutRight {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.custom-alert.success .alert-icon {
+  animation: pulse 0.6s ease-in-out;
 }
 
 /* Mobile responsive */
