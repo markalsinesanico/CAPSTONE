@@ -47,8 +47,7 @@ export default function Profile() {
   };
 
   const handleHistory = () => {
-    // Navigate to history screen
-    Alert.alert('History', 'History functionality will be implemented here.');
+    navigation.navigate('History');
   };
 
 

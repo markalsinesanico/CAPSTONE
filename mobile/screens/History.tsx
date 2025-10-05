@@ -6,7 +6,6 @@ import {
   StyleSheet, 
   ScrollView, 
   Dimensions, 
-  Alert,
   ActivityIndicator,
   Image,
   Modal,
@@ -69,11 +68,11 @@ interface RoomRequest {
   };
 }
 
-export default function Receipt() {
+export default function History() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [activeTab, setActiveTab] = useState<'items' | 'rooms'>('items');
-  const [itemRequests, setItemRequests] = useState<ItemRequest[]>([]);
-  const [roomRequests, setRoomRequests] = useState<RoomRequest[]>([]);
+  const [returnedItemRequests, setReturnedItemRequests] = useState<ItemRequest[]>([]);
+  const [returnedRoomRequests, setReturnedRoomRequests] = useState<RoomRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [userEmail, setUserEmail] = useState<string>('');
   const [userInfo, setUserInfo] = useState<any>(null);
@@ -83,86 +82,14 @@ export default function Receipt() {
   // Custom alert hook
   const { alertState, showSuccess, showError, showWarning, showInfo, hideAlert } = useCustomAlert();
   
-  // Debug alert state
-  useEffect(() => {
-    console.log('Receipt: Alert state changed:', alertState);
-  }, [alertState]);
-
-  // Test function for alerts
-  const testAlerts = () => {
-    console.log('Testing alerts...');
-    showSuccess('Test Success', 'This is a success alert!');
-    setTimeout(() => {
-      console.log('Showing error alert...');
-      showError('Test Error', 'This is an error alert!');
-    }, 2000);
-    setTimeout(() => {
-      console.log('Showing warning alert...');
-      showWarning('Test Warning', 'This is a warning alert!');
-    }, 4000);
-    setTimeout(() => {
-      console.log('Showing info alert...');
-      showInfo('Test Info', 'This is an info alert!');
-    }, 6000);
-  };
-
-
   // Use immersive mode hook
   useImmersiveMode();
 
   useEffect(() => {
     loadUserEmail();
     fetchUserInfo();
-    fetchData();
+    fetchReturnedData();
   }, []);
-
-
-  // Test function to verify API connectivity
-  const testAPI = async () => {
-    try {
-      console.log('Testing API connectivity...');
-      const response = await API.get('/user-info');
-      console.log('User info response:', response.data);
-      
-      // Test database connection
-      try {
-        const dbResponse = await API.get('/db-test');
-        console.log('Database test response:', dbResponse.data);
-        
-        // Log detailed information about items and units
-        if (dbResponse.data.sample_item) {
-          console.log('Sample item with units:', JSON.stringify(dbResponse.data.sample_item, null, 2));
-        }
-        if (dbResponse.data.sample_request) {
-          console.log('Sample request with itemUnit:', JSON.stringify(dbResponse.data.sample_request, null, 2));
-        }
-      } catch (dbError: any) {
-        console.log('Database test failed:', dbError.response?.data || dbError.message);
-      }
-      
-      // Also test if there are any items available
-      try {
-        const itemsResponse = await API.get('/items');
-        console.log('Available items:', itemsResponse.data);
-        console.log('Items count:', itemsResponse.data?.length || 0);
-      } catch (itemsError: any) {
-        console.log('Could not fetch items:', itemsError.response?.data || itemsError.message);
-      }
-    } catch (error: any) {
-      console.error('API test failed:', error.response?.data || error.message);
-    }
-  };
-
-  // Call test function on mount
-  useEffect(() => {
-    testAPI();
-  }, []);
-
-  // Debug log to see state changes
-  useEffect(() => {
-    console.log('itemRequests state:', itemRequests);
-    console.log('roomRequests state:', roomRequests);
-  }, [itemRequests, roomRequests]);
 
   const loadUserEmail = async () => {
     try {
@@ -189,18 +116,18 @@ export default function Receipt() {
     }
   };
 
-  const fetchData = async () => {
+  const fetchReturnedData = async () => {
     setLoading(true);
     try {
       // Check if user is authenticated
       const token = await AsyncStorage.getItem('token');
       const currentUserEmail = await AsyncStorage.getItem('email');
       
-      console.log('Fetching data with token:', token ? 'Present' : 'Missing');
+      console.log('Fetching returned data with token:', token ? 'Present' : 'Missing');
       console.log('User email:', currentUserEmail);
       
       if (!token) {
-        showWarning('Authentication Required', 'Please log in to view your receipts.');
+        showWarning('Authentication Required', 'Please log in to view your history.');
         setLoading(false);
         return;
       }
@@ -210,10 +137,10 @@ export default function Receipt() {
       
       try {
         console.log('Attempting to fetch requests...');
-          [itemRes, roomRes] = await Promise.all([
-            API.get('/requests'),
-            API.get('/room-requests')
-          ]);
+        [itemRes, roomRes] = await Promise.all([
+          API.get('/requests'),
+          API.get('/room-requests')
+        ]);
         
         console.log('Item requests response:', itemRes.data);
         console.log('Room requests response:', roomRes.data);
@@ -221,11 +148,11 @@ export default function Receipt() {
       } catch (error: any) {
         console.error('Error fetching requests:', error.response?.data || error.message);
         showError(
-            'Error Fetching Data', 
-          `Failed to fetch receipts. Please check your connection and try again.\n\nError: ${error.response?.data?.message || error.message}`
-          );
-          setLoading(false);
-          return;
+          'Error Fetching Data', 
+          `Failed to fetch history. Please check your connection and try again.\n\nError: ${error.response?.data?.message || error.message}`
+        );
+        setLoading(false);
+        return;
       }
       
       // Handle the data with better parsing
@@ -235,7 +162,7 @@ export default function Receipt() {
       // Handle item requests - try multiple data structures
       if (itemRes && itemRes.data) {
         if (Array.isArray(itemRes.data)) {
-        itemData = itemRes.data;
+          itemData = itemRes.data;
         } else if (itemRes.data.data && Array.isArray(itemRes.data.data)) {
           itemData = itemRes.data.data;
         } else if (itemRes.data.requests && Array.isArray(itemRes.data.requests)) {
@@ -245,8 +172,8 @@ export default function Receipt() {
       
       // Handle room requests - try multiple data structures
       if (roomRes && roomRes.data) {
-      if (Array.isArray(roomRes.data)) {
-        roomData = roomRes.data;
+        if (Array.isArray(roomRes.data)) {
+          roomData = roomRes.data;
         } else if (roomRes.data.data && Array.isArray(roomRes.data.data)) {
           roomData = roomRes.data.data;
         } else if (roomRes.data.requests && Array.isArray(roomRes.data.requests)) {
@@ -257,42 +184,41 @@ export default function Receipt() {
       console.log('Parsed item data:', itemData);
       console.log('Parsed room data:', roomData);
       
-      // Filter data by user's email
-      console.log('Filtering by user email:', currentUserEmail);
+      // Filter data by user's email and only returned items
+      console.log('Filtering by user email and returned status:', currentUserEmail);
       
-      // Filter item requests by email and exclude returned items
+      // Filter item requests by email and returned status
       const filteredItemData = itemData.filter((request: any) => {
         const requestEmail = request.email || request.user_email;
-        const isNotReturned = request.returned !== true;
-        console.log('Item request email:', requestEmail, 'User email:', currentUserEmail, 'Not returned:', isNotReturned);
-        return requestEmail === currentUserEmail && isNotReturned;
+        const isReturned = request.returned === true;
+        console.log('Item request email:', requestEmail, 'User email:', currentUserEmail, 'Returned:', isReturned);
+        return requestEmail === currentUserEmail && isReturned;
       });
       
-      // Filter room requests by email and exclude returned rooms
+      // Filter room requests by email and returned status
       const filteredRoomData = roomData.filter((request: any) => {
         const requestEmail = request.email || request.user_email;
-        const isNotReturned = request.returned !== true;
-        console.log('Room request email:', requestEmail, 'User email:', currentUserEmail, 'Not returned:', isNotReturned);
-        return requestEmail === currentUserEmail && isNotReturned;
+        const isReturned = request.returned === true;
+        console.log('Room request email:', requestEmail, 'User email:', currentUserEmail, 'Returned:', isReturned);
+        return requestEmail === currentUserEmail && isReturned;
       });
       
-      console.log('Filtered item data:', filteredItemData);
-      console.log('Filtered room data:', filteredRoomData);
+      console.log('Filtered returned item data:', filteredItemData);
+      console.log('Filtered returned room data:', filteredRoomData);
       
-      setItemRequests(filteredItemData);
-      setRoomRequests(filteredRoomData);
+      setReturnedItemRequests(filteredItemData);
+      setReturnedRoomRequests(filteredRoomData);
       
-      // Only show alert if both are empty and we got successful responses
+      // Show info if no returned items found
       if (filteredItemData.length === 0 && filteredRoomData.length === 0) {
-        console.log('No receipts found for user - showing info message');
-        // Don't show alert immediately, let the UI show the empty state
+        console.log('No returned items found for user');
       }
       
     } catch (error: any) {
-      console.error('Unexpected error in fetchData:', error);
-      setItemRequests([]);
-      setRoomRequests([]);
-      showError('Error', 'Failed to load receipts. Please try again.');
+      console.error('Unexpected error in fetchReturnedData:', error);
+      setReturnedItemRequests([]);
+      setReturnedRoomRequests([]);
+      showError('Error', 'Failed to load history. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -317,61 +243,6 @@ export default function Receipt() {
     });
   };
 
-  const cancelRequest = async (requestId: number, type: 'item' | 'room') => {
-    try {
-      // Find the request to check if it's returned
-      const allRequests = type === 'item' ? itemRequests : roomRequests;
-      const request = allRequests.find(r => r.id === requestId);
-      const isReturned = request?.returned;
-      
-      const action = isReturned ? 'delete' : 'cancel';
-      const actionText = isReturned ? 'delete' : 'cancel';
-      const actionTitle = isReturned ? 'Delete Request' : 'Cancel Request';
-      const actionMessage = isReturned 
-        ? 'Are you sure you want to delete this returned request? This action cannot be undone.'
-        : 'Are you sure you want to cancel this request? This action cannot be undone.';
-      
-      Alert.alert(
-        actionTitle,
-        actionMessage,
-        [
-          {
-            text: 'No',
-            style: 'cancel',
-          },
-          {
-            text: `Yes, ${actionText.charAt(0).toUpperCase() + actionText.slice(1)}`,
-            style: 'destructive',
-            onPress: async () => {
-              try {
-                console.log(`${actionText.charAt(0).toUpperCase() + actionText.slice(1)}ing ${type} request with ID: ${requestId}`);
-                
-                if (type === 'item') {
-                  await API.delete(`/requests/${requestId}`);
-                } else {
-                  await API.delete(`/room-requests/${requestId}`);
-                }
-                
-                showSuccess(
-                  'Success', 
-                  `Your request has been ${actionText}ed successfully.`
-                );
-                        // Refresh the data
-                        fetchData();
-              } catch (error: any) {
-                console.error(`Error ${actionText}ing request:`, error);
-                const errorMessage = error.response?.data?.message || `Failed to ${actionText} request. Please try again.`;
-                showError('Error', errorMessage);
-              }
-            },
-          },
-        ]
-      );
-    } catch (error) {
-      console.error('Error showing action dialog:', error);
-    }
-  };
-
   const openZoomModal = (qrData: string) => {
     setZoomQRData(qrData);
     setZoomModalVisible(true);
@@ -382,10 +253,54 @@ export default function Receipt() {
     setZoomQRData('');
   };
 
-  const renderItemReceipt = (request: ItemRequest) => {
+  const deleteReturnedRequest = async (requestId: number, type: 'item' | 'room') => {
+    try {
+      Alert.alert(
+        'Delete Returned Request',
+        'Are you sure you want to delete this returned request? This action cannot be undone.',
+        [
+          {
+            text: 'Cancel',
+            style: 'cancel',
+          },
+          {
+            text: 'Delete',
+            style: 'destructive',
+            onPress: async () => {
+              try {
+                console.log(`Deleting returned ${type} request with ID: ${requestId}`);
+                
+                if (type === 'item') {
+                  await API.delete(`/requests/${requestId}`);
+                } else {
+                  await API.delete(`/room-requests/${requestId}`);
+                }
+                
+                showSuccess(
+                  'Success', 
+                  'Returned request has been deleted successfully.'
+                );
+                
+                // Refresh the data
+                fetchReturnedData();
+              } catch (error: any) {
+                console.error(`Error deleting returned ${type} request:`, error);
+                const errorMessage = error.response?.data?.message || `Failed to delete returned ${type} request. Please try again.`;
+                showError('Error', errorMessage);
+              }
+            },
+          },
+        ]
+      );
+    } catch (error) {
+      console.error('Error showing delete dialog:', error);
+    }
+  };
+
+  const renderReturnedItemReceipt = (request: ItemRequest) => {
     // Generate QR code data for this receipt
     const qrData = {
-      type: 'item_request_receipt',
+      type: 'returned_item_request_receipt',
       requestId: request.id,
       borrowerName: request.name,
       schoolId: request.borrower_id,
@@ -399,9 +314,6 @@ export default function Receipt() {
       unitCode: request.itemUnit?.unit_code || 'N/A',
       timestamp: new Date().toISOString()
     };
-
-    // Debug: Log the QR data being generated
-    console.log('Item QR Data:', JSON.stringify(qrData, null, 2));
 
     return (
       <View key={request.id} style={styles.receiptCard}>
@@ -432,89 +344,89 @@ export default function Receipt() {
           </View>
         </View>
 
-      <View style={styles.receiptContent}>
-        <View style={styles.qrSection}>
-          {request.itemUnit?.qr_url && (
-            <View style={styles.qrContainer}>
-              <Text style={styles.qrLabel}>Item QR Code</Text>
-              <Image 
-                source={{ uri: request.itemUnit.qr_url }} 
-                style={styles.qrImage}
-                resizeMode="contain"
-              />
-              {request.itemUnit?.unit_code && (
-                <Text style={styles.unitCode}>Unit Code: {request.itemUnit.unit_code}</Text>
-              )}
-            </View>
-          )}
-        </View>
+        <View style={styles.receiptContent}>
+          <View style={styles.qrSection}>
+            {request.itemUnit?.qr_url && (
+              <View style={styles.qrContainer}>
+                <Text style={styles.qrLabel}>Item QR Code</Text>
+                <Image 
+                  source={{ uri: request.itemUnit.qr_url }} 
+                  style={styles.qrImage}
+                  resizeMode="contain"
+                />
+                {request.itemUnit?.unit_code && (
+                  <Text style={styles.unitCode}>Unit Code: {request.itemUnit.unit_code}</Text>
+                )}
+              </View>
+            )}
+          </View>
 
-        <View style={styles.detailsSection}>
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Name:</Text>
-            <Text style={styles.detailValue}>{request.name}</Text>
-          </View>
-          
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>School ID:</Text>
-            <Text style={styles.detailValue}>{request.borrower_id}</Text>
-          </View>
-          
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Year:</Text>
-            <Text style={styles.detailValue}>{request.year}</Text>
-          </View>
-          
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Department:</Text>
-            <Text style={styles.detailValue}>{request.department}</Text>
-          </View>
-          
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Course:</Text>
-            <Text style={styles.detailValue}>{request.course}</Text>
-          </View>
-          
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Date:</Text>
-            <Text style={styles.detailValue}>{formatDate(request.date)}</Text>
-          </View>
-          
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Time:</Text>
-            <Text style={styles.detailValue}>
-              {formatTime(request.time_in)} - {formatTime(request.time_out)}
-            </Text>
-          </View>
+          <View style={styles.detailsSection}>
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Name:</Text>
+              <Text style={styles.detailValue}>{request.name}</Text>
+            </View>
             
             <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>School ID:</Text>
+              <Text style={styles.detailValue}>{request.borrower_id}</Text>
+            </View>
+            
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Year:</Text>
+              <Text style={styles.detailValue}>{request.year}</Text>
+            </View>
+            
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Department:</Text>
+              <Text style={styles.detailValue}>{request.department}</Text>
+            </View>
+            
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Course:</Text>
+              <Text style={styles.detailValue}>{request.course}</Text>
+            </View>
+            
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Date:</Text>
+              <Text style={styles.detailValue}>{formatDate(request.date)}</Text>
+            </View>
+            
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Time:</Text>
+              <Text style={styles.detailValue}>
+                {formatTime(request.time_in)} - {formatTime(request.time_out)}
+              </Text>
+            </View>
+              
+            <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>Status:</Text>
-              <Text style={[styles.detailValue, request.returned ? styles.returnedText : styles.pendingText]}>
-                {request.returned ? 'Returned' : 'Pending'}
-            </Text>
+              <Text style={[styles.detailValue, styles.returnedText]}>
+                Returned
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.deleteButtonSection}>
+            <TouchableOpacity 
+              style={styles.deleteButton}
+              onPress={() => deleteReturnedRequest(request.id, 'item')}
+            >
+              <FontAwesome5 name="trash" size={14} color="#fff" />
+              <Text style={styles.deleteButtonText}>
+                Delete Request
+              </Text>
+            </TouchableOpacity>
           </View>
         </View>
-
-        <View style={styles.cancelButtonSection}>
-          <TouchableOpacity 
-              style={[styles.cancelRequestButton, request.returned && styles.deleteButton]}
-            onPress={() => cancelRequest(request.id, 'item')}
-          >
-              <FontAwesome5 name={request.returned ? "trash" : "times"} size={14} color="#fff" />
-              <Text style={styles.cancelRequestButtonText}>
-                {request.returned ? 'Delete Request' : 'Cancel Request'}
-              </Text>
-          </TouchableOpacity>
-        </View>
       </View>
-    </View>
-  );
-};
+    );
+  };
 
-  const renderRoomReceipt = (request: RoomRequest) => {
+  const renderReturnedRoomReceipt = (request: RoomRequest) => {
     // Generate QR code data for this room receipt
     const qrData = {
-      type: 'room_request_receipt',
+      type: 'returned_room_request_receipt',
       requestId: request.id,
       borrowerName: request.name,
       schoolId: request.borrower_id,
@@ -527,9 +439,6 @@ export default function Receipt() {
       roomName: request.room?.name || 'N/A',
       timestamp: new Date().toISOString()
     };
-
-    // Debug: Log the QR data being generated
-    console.log('Room QR Data:', JSON.stringify(qrData, null, 2));
 
     return (
       <View key={request.id} style={styles.receiptCard}>
@@ -560,66 +469,66 @@ export default function Receipt() {
           </View>
         </View>
 
-      <View style={styles.receiptContent}>
-        <View style={styles.detailsSection}>
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Name:</Text>
-            <Text style={styles.detailValue}>{request.name}</Text>
-          </View>
-          
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>School ID:</Text>
-            <Text style={styles.detailValue}>{request.borrower_id}</Text>
-          </View>
-          
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Year:</Text>
-            <Text style={styles.detailValue}>{request.year}</Text>
-          </View>
-          
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Department:</Text>
-            <Text style={styles.detailValue}>{request.department}</Text>
-          </View>
-          
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Course:</Text>
-            <Text style={styles.detailValue}>{request.course}</Text>
-          </View>
-          
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Date:</Text>
-            <Text style={styles.detailValue}>{formatDate(request.date)}</Text>
-          </View>
-          
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Time:</Text>
-            <Text style={styles.detailValue}>
-              {formatTime(request.time_in)} - {formatTime(request.time_out)}
-            </Text>
-          </View>
+        <View style={styles.receiptContent}>
+          <View style={styles.detailsSection}>
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Name:</Text>
+              <Text style={styles.detailValue}>{request.name}</Text>
+            </View>
             
             <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>School ID:</Text>
+              <Text style={styles.detailValue}>{request.borrower_id}</Text>
+            </View>
+            
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Year:</Text>
+              <Text style={styles.detailValue}>{request.year}</Text>
+            </View>
+            
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Department:</Text>
+              <Text style={styles.detailValue}>{request.department}</Text>
+            </View>
+            
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Course:</Text>
+              <Text style={styles.detailValue}>{request.course}</Text>
+            </View>
+            
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Date:</Text>
+              <Text style={styles.detailValue}>{formatDate(request.date)}</Text>
+            </View>
+            
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Time:</Text>
+              <Text style={styles.detailValue}>
+                {formatTime(request.time_in)} - {formatTime(request.time_out)}
+              </Text>
+            </View>
+              
+            <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>Status:</Text>
-              <Text style={[styles.detailValue, request.returned ? styles.returnedText : styles.pendingText]}>
-                {request.returned ? 'Returned' : 'Pending'}
-            </Text>
+              <Text style={[styles.detailValue, styles.returnedText]}>
+                Returned
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.deleteButtonSection}>
+            <TouchableOpacity 
+              style={styles.deleteButton}
+              onPress={() => deleteReturnedRequest(request.id, 'room')}
+            >
+              <FontAwesome5 name="trash" size={14} color="#fff" />
+              <Text style={styles.deleteButtonText}>
+                Delete Request
+              </Text>
+            </TouchableOpacity>
           </View>
         </View>
-
-        <View style={styles.cancelButtonSection}>
-          <TouchableOpacity 
-              style={[styles.cancelRequestButton, request.returned && styles.deleteButton]}
-            onPress={() => cancelRequest(request.id, 'room')}
-          >
-              <FontAwesome5 name={request.returned ? "trash" : "times"} size={14} color="#fff" />
-              <Text style={styles.cancelRequestButtonText}>
-                {request.returned ? 'Delete Request' : 'Cancel Request'}
-              </Text>
-          </TouchableOpacity>
-        </View>
       </View>
-    </View>
     );
   };
 
@@ -629,7 +538,7 @@ export default function Receipt() {
         <Header />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#007e3a" />
-          <Text style={styles.loadingText}>Loading receipts...</Text>
+          <Text style={styles.loadingText}>Loading history...</Text>
         </View>
         <Footer />
       </View>
@@ -666,7 +575,7 @@ export default function Receipt() {
           >
             <FontAwesome5 name="box" size={16} color={activeTab === 'items' ? '#fff' : '#007e3a'} />
             <Text style={[styles.tabText, activeTab === 'items' && styles.activeTabText]}>
-              Items ({itemRequests?.length || 0})
+              Items ({returnedItemRequests?.length || 0})
             </Text>
           </TouchableOpacity>
           
@@ -676,7 +585,7 @@ export default function Receipt() {
           >
             <FontAwesome5 name="door-open" size={16} color={activeTab === 'rooms' ? '#fff' : '#007e3a'} />
             <Text style={[styles.tabText, activeTab === 'rooms' && styles.activeTabText]}>
-              Rooms ({roomRequests?.length || 0})
+              Rooms ({returnedRoomRequests?.length || 0})
             </Text>
           </TouchableOpacity>
         </View>
@@ -684,32 +593,27 @@ export default function Receipt() {
 
       <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
         {activeTab === 'items' ? (
-          Array.isArray(itemRequests) && itemRequests.length > 0 ? (
-            itemRequests.map(renderItemReceipt)
+          Array.isArray(returnedItemRequests) && returnedItemRequests.length > 0 ? (
+            returnedItemRequests.map(renderReturnedItemReceipt)
           ) : (
             <View style={styles.emptyContainer}>
               <FontAwesome5 name="box-open" size={50} color="#ccc" />
-              <Text style={styles.emptyText}>No pending item requests found</Text>
+              <Text style={styles.emptyText}>No returned items found</Text>
               <Text style={styles.emptySubtext}>
-                No pending item requests found. Returned items can be viewed in History. Make sure you're logged in with the correct account and have created item requests.
+                No returned item requests found in your history. Items will appear here once they are returned.
               </Text>
-             
-              
-              {/* Test Alert Button */}
-              
             </View>
           )
         ) : (
-          Array.isArray(roomRequests) && roomRequests.length > 0 ? (
-            roomRequests.map(renderRoomReceipt)
+          Array.isArray(returnedRoomRequests) && returnedRoomRequests.length > 0 ? (
+            returnedRoomRequests.map(renderReturnedRoomReceipt)
           ) : (
             <View style={styles.emptyContainer}>
               <FontAwesome5 name="door-closed" size={50} color="#ccc" />
-              <Text style={styles.emptyText}>No pending room requests found</Text>
+              <Text style={styles.emptyText}>No returned rooms found</Text>
               <Text style={styles.emptySubtext}>
-                No pending room requests found. Returned rooms can be viewed in History. Make sure you're logged in with the correct account and have created room requests.
+                No returned room requests found in your history. Rooms will appear here once they are returned.
               </Text>
-             
             </View>
           )
         )}
@@ -721,7 +625,7 @@ export default function Receipt() {
           onPress={() => navigation.goBack()}
         >
           <FontAwesome5 name="times" size={16} color="#fff" />
-          <Text style={styles.cancelButtonText}>Cancel</Text>
+          <Text style={styles.cancelButtonText}>Back</Text>
         </TouchableOpacity>
       </View>
       <Footer />
@@ -755,7 +659,7 @@ export default function Receipt() {
                 logoBorderRadius={15}
               />
             </View>
-            <Text style={styles.zoomInstructions}>z
+            <Text style={styles.zoomInstructions}>
               Scan this QR code with the Dashboard scanner
             </Text>
           </View>
@@ -1100,52 +1004,33 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingHorizontal: 20,
   },
-  retryButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#f8f9fa',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    marginTop: 16,
-    borderWidth: 1,
-    borderColor: '#007e3a',
-  },
-  retryButtonText: {
-    marginLeft: 8,
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#007e3a',
-  },
-  testAlertButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#f8f9fa',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#007e3a',
-    marginTop: 10,
-  },
-  testAlertButtonText: {
-    color: '#007e3a',
-    fontSize: 14,
-    fontWeight: '600',
-    marginLeft: 6,
-  },
   returnedText: {
     color: '#28a745',
     fontWeight: '600',
   },
-  pendingText: {
-    color: '#ffc107',
-    fontWeight: '600',
+  deleteButtonSection: {
+    marginTop: 20,
+    alignItems: 'center',
   },
   deleteButton: {
     backgroundColor: '#dc3545',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  deleteButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+    marginLeft: 8,
   },
   cancelButtonContainer: {
     paddingHorizontal: 20,
@@ -1172,47 +1057,9 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginLeft: 8,
   },
-  cancelButtonSection: {
-    marginTop: 20,
-    alignItems: 'center',
-  },
-  cancelRequestButton: {
-    backgroundColor: '#dc3545',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  cancelRequestButtonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
-    marginLeft: 8,
-  },
   headerQrContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  headerQrImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 8,
-    borderWidth: 2,
-    borderColor: '#fff',
-    marginBottom: 8,
-  },
-  headerQrLabel: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '600',
-    textAlign: 'center',
   },
   qrWithZoomContainer: {
     position: 'relative',
@@ -1280,4 +1127,3 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
 });
-
