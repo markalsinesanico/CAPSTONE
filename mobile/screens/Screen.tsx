@@ -196,11 +196,7 @@ export default function Screen(): JSX.Element {
       const userEmail = await AsyncStorage.getItem('email');
 
       const formatTime = (date: Date) =>
-        date.toLocaleTimeString("en-US", {
-          hour12: false,
-          hour: "2-digit",
-          minute: "2-digit",
-        });
+        date.toTimeString().slice(0, 5); // Format as HH:MM
 
       const requestData = {
         name: form.fullName,
@@ -224,7 +220,8 @@ export default function Screen(): JSX.Element {
       resetForm();
     } catch (error: any) {
       console.error("Error submitting request:", error);
-      Alert.alert("Error", "Failed to submit request. Please try again.");
+      const errorMessage = error.response?.data?.message || error.message || "Failed to submit request. Please try again.";
+      Alert.alert("Error", errorMessage);
     }
   };
 

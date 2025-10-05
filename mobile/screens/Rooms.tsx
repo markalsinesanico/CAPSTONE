@@ -258,16 +258,8 @@ const handleTimeChange = (type: "timeIn" | "timeOut") => (event: DateTimePickerE
         department: department,
         course: course,
         date: date.toISOString().split('T')[0],
-        time_in: timeIn.toLocaleTimeString('en-US', {
-          hour12: false,
-          hour: '2-digit',
-          minute: '2-digit'
-        }),
-        time_out: timeOut.toLocaleTimeString('en-US', {
-          hour12: false,
-          hour: '2-digit',
-          minute: '2-digit'
-        }),
+        time_in: timeIn.toTimeString().slice(0, 5), // Format as HH:MM
+        time_out: timeOut.toTimeString().slice(0, 5), // Format as HH:MM
         room_id: room.id,
         email: userEmail || undefined // Include user email
       };
