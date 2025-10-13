@@ -4,6 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\API\ItemController;
+use App\Http\Controllers\API\ItemUnitController;
 use App\Http\Controllers\API\RequestItemController;
 use App\Http\Controllers\API\RoomController;
 use App\Http\Controllers\API\RoomRequestController;
@@ -27,6 +28,9 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 
 // Public routes
 Route::post('/login', [AuthController::class, 'login']);
+
+// QR Code scanning (public access)
+Route::get('/scan/{code}', [ItemUnitController::class, 'scan']);
 
 // Protected routes
 Route::middleware('auth:sanctum')->group(function () {

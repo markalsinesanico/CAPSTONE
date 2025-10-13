@@ -150,6 +150,8 @@
           :camera="camera"
           :track="paintBoundingBox"
           :constraints="cameraConstraints"
+          :paused="false"
+          :torch="false"
         />
         <div v-if="qrResult">
           <p :style="{ color: qrResult.includes('Invalid') ? '#e74c3c' : qrResult.includes('successfully') ? '#2ecc71' : '#007e3a' }">
@@ -167,7 +169,6 @@
           </p>
         </div>
         <div class="qr-test-buttons">
-          <button class="test-btn" @click="testQRCode">Test QR</button>
           <button class="close-btn" @click="closeQrModal">Close</button>
         </div>
       </div>
@@ -226,6 +227,7 @@ export default {
         "4:00 PM", "4:30 PM", "5:00 PM", "5:30 PM", "6:00 PM", "6:30 PM",
         "7:00 PM", "7:30 PM", "8:00 PM", "8:30 PM", "9:00 PM", "9:30 PM", "10:00 PM"
       ],
+      days: [],
       borrowers: [],
       roomRequests: [],
       rooms: [],
@@ -537,7 +539,7 @@ export default {
       ];
     },
     onDecode(result) {
-      this.qrResult = result;
+      this.qrResult = 'QR Code detected! Processing...';
       this.processQRCode(result);
     },
     openQrModal() {
@@ -552,9 +554,7 @@ export default {
       try {
         await promise;
         this.qrError = '';
-        console.log('QR Scanner initialized successfully');
       } catch (error) {
-        console.error('QR Scanner initialization failed:', error);
         if (error.name === 'NotAllowedError') {
           this.qrError = 'Camera access denied. Please allow camera access and try again.';
         } else if (error.name === 'NotFoundError') {
@@ -569,11 +569,19 @@ export default {
       }
     },
     onError(error) {
-      console.error('QR Scanner error:', error);
       this.qrError = 'QR Scanner error: ' + error.message;
     },
     paintBoundingBox(detectedCodes, ctx) {
-      // Optional: Add visual feedback for detected QR codes
+      // Manually trigger processing since onDecode isn't being called
+      if (detectedCodes.length > 0) {
+        detectedCodes.forEach((code, index) => {
+          if (code.rawValue && !this.qrResult.includes('QR Code detected!')) {
+            this.onDecode(code.rawValue);
+          }
+        });
+      }
+      
+      // Add visual feedback for detected QR codes
       detectedCodes.forEach(code => {
         const { x, y, width, height } = code.boundingBox;
         ctx.strokeStyle = '#007e3a';
@@ -583,20 +591,12 @@ export default {
     },
     processQRCode(qrResult) {
       try {
-        console.log('QR Code detected:', qrResult);
-        console.log('QR Code type:', typeof qrResult);
-        console.log('QR Code length:', qrResult.length);
         
         // Parse the QR code JSON data
         const qrData = JSON.parse(qrResult);
-        console.log('Parsed QR data:', qrData);
-        console.log('QR Data type:', qrData.type);
-        console.log('QR Data keys:', Object.keys(qrData));
         
         // Validate that this is a receipt QR code
         if (!qrData.type || (!qrData.type.includes('receipt'))) {
-          console.log('Invalid QR code type:', qrData.type);
-          console.log('Expected type to include "receipt"');
           this.qrResult = 'Invalid QR code. Please scan a valid receipt QR code.';
           setTimeout(() => {
             this.qrResult = '';
@@ -626,8 +626,6 @@ export default {
         this.closeQrModal();
         this.showEventDetailsFromQR(eventDetails);
         
-        console.log('QR Code processed successfully:', eventDetails);
-        console.log('Event Details modal should now be visible');
         
         // Show success message briefly
         this.qrResult = 'Receipt data loaded successfully!';
@@ -635,11 +633,6 @@ export default {
           this.qrResult = '';
         }, 2000);
       } catch (error) {
-        console.error('Error processing QR code:', error);
-        console.log('Error message:', error.message);
-        console.log('Raw QR result that failed to parse:', qrResult);
-        console.log('QR result type:', typeof qrResult);
-        console.log('QR result length:', qrResult ? qrResult.length : 'null/undefined');
         this.qrResult = 'Invalid QR code format. Please scan a valid receipt QR code.';
         setTimeout(() => {
           this.qrResult = '';
@@ -647,10 +640,13 @@ export default {
       }
     },
     showEventDetailsFromQR(eventDetails) {
-      console.log('Showing Event Details from QR data:', eventDetails);
       
       // Set the selected date to the event date to show the event in calendar
-      this.selectedDate = eventDetails.date;
+      // Format the date to yyyy-MM-dd format for HTML date input
+      if (eventDetails.date) {
+        const date = new Date(eventDetails.date);
+        this.selectedDate = date.toISOString().split('T')[0];
+      }
       
       // Set the correct sort type (EQUIPMENT or ROOMS)
       this.sortBy = eventDetails.source === 'item' ? 'EQUIPMENT' : 'ROOMS';
@@ -686,6 +682,7 @@ export default {
         itemName: eventDetails.itemName,
         fromQR: true // Mark that this came from QR scan
       };
+      
       
       this.modalVisible = true;
       
@@ -837,29 +834,6 @@ export default {
         }
       });
     },
-    testQRCode() {
-      // Test QR code data that matches the format from Profile.tsx
-      // Use today's date to ensure the event appears in the calendar
-      const today = new Date().toISOString().substr(0, 10);
-      const testQRData = {
-        requestId: 999, // Use a unique ID for testing
-        borrowerName: 'Test User',
-        itemName: 'Test Projector',
-        schoolId: 'TEST-12345',
-        year: '3rd Year',
-        department: 'Computer Science',
-        course: 'BSIT',
-        date: today,
-        timeIn: '9:00 AM',
-        timeOut: '11:00 AM',
-        timestamp: new Date().toISOString(),
-        type: 'item_request_receipt'
-      };
-      
-      const testQRString = JSON.stringify(testQRData);
-      console.log('Testing with QR data:', testQRString);
-      this.processQRCode(testQRString);
-    },
     async refreshData() {
       console.log('Refreshing data...');
       try {
@@ -911,30 +885,6 @@ export default {
           alert('Invalid JSON format. Please enter valid QR code data.');
         }
       }
-    },
-    testQRCode() {
-      // Test QR code data that matches the format from Receipt.tsx
-      const today = new Date().toISOString().substr(0, 10);
-      const testQRData = {
-        type: 'item_request_receipt',
-        requestId: 123,
-        borrowerName: 'Test User',
-        schoolId: 'TEST-12345',
-        year: '3rd Year',
-        department: 'Computer Science',
-        course: 'BSIT',
-        date: today,
-        timeIn: '09:00',
-        timeOut: '11:00',
-        itemName: 'Test Projector',
-        unitCode: 'UNIT-123',
-        timestamp: new Date().toISOString()
-      };
-      
-      const testQRString = JSON.stringify(testQRData);
-      console.log('Testing with QR data:', testQRString);
-      console.log('This should open the Event Details modal with all request information');
-      this.processQRCode(testQRString);
     },
     // Enhanced Custom Alert Methods
     showCustomAlert(type, title, message, duration = 5000) {

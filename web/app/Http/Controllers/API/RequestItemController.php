@@ -12,7 +12,7 @@ class RequestItemController extends Controller
 {
     public function index()
     {
-        return RequestItem::with('item')->orderBy('created_at', 'desc')->get();
+        return RequestItem::with(['item', 'itemUnit'])->orderBy('created_at', 'desc')->get();
     }
 
     public function store(Request $request)
@@ -57,9 +57,31 @@ class RequestItemController extends Controller
         }
 
         // ✅ Otherwise → create request
+        // Find an available item unit for this request
+        $availableUnit = \App\Models\ItemUnit::where('item_id', $item->id)
+            ->where('status', 'available')
+            ->whereNotIn('id', function($query) use ($data) {
+                $query->select('item_unit_id')
+                    ->from('requests')
+                    ->where('date', $data['date'])
+                    ->where('item_unit_id', '!=', null)
+                    ->where(function ($q) use ($data) {
+                        $q->where('time_in', '<', $data['time_out'])
+                          ->where('time_out', '>', $data['time_in']);
+                    });
+            })
+            ->first();
+
+        // Assign the available unit to the request
+        if ($availableUnit) {
+            $data['item_unit_id'] = $availableUnit->id;
+            // Mark the unit as borrowed
+            $availableUnit->update(['status' => 'borrowed']);
+        }
+
         $requestItem = RequestItem::create($data);
 
-        return response()->json($requestItem->load('item'), 201);
+        return response()->json($requestItem->load(['item', 'itemUnit']), 201);
     }
 
     public function show(RequestItem $requestItem)
@@ -110,8 +132,13 @@ class RequestItemController extends Controller
     public function return($id)
     {
         try {
-            $requestItem = RequestItem::findOrFail($id);
+            $requestItem = RequestItem::with('itemUnit')->findOrFail($id);
             $requestItem->update(['returned' => true]);
+            
+            // Mark the item unit as available again
+            if ($requestItem->itemUnit) {
+                $requestItem->itemUnit->update(['status' => 'available']);
+            }
             
             // Create notification for the user about item return
             if ($requestItem->email) {
