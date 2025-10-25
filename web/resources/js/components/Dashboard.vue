@@ -1028,14 +1028,20 @@ export default {
 
     .sidebar {
       width: 220px;
-  background: #2c3e50;
-  color: white;
-  display: flex;
-  flex-direction: column;
-  padding: 30px 20px;
-  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
-  flex-shrink: 0;
-}
+      background: #2c3e50;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      padding: 30px 20px;
+      box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+      flex-shrink: 0;
+      position: fixed; /* keep sidebar fixed while main scrolls */
+      top: 0;
+      left: 0;
+      height: 100vh;
+      overflow-y: auto; /* allow sidebar to scroll if content overflows */
+      z-index: 1000;
+    }
 
 .menu {
   display: flex;
@@ -1061,22 +1067,27 @@ export default {
 
     .main {
       flex: 1;
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  margin-left: 0;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      margin-left: 220px; /* account for fixed sidebar width */
+      min-height: 100vh; /* ensure main area provides its own scroll */
     }
 
     .topbar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      background-color: #007e3a;
-      padding: 10px 20px;
-      color: white;
-      border-radius: 8px;
+      
+     position: sticky;   /* stays visible while scrolling */
+  top: 0;             /* sticks to the top */
+  z-index: 1000;      /* ensures it stays above content */
+  background-color: #007e3a;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 10px 20px;
+  color: white;
+  border-radius: 8px;
     }
 
     .topbar .logo {
@@ -1485,16 +1496,20 @@ export default {
   flex-wrap: wrap;
 }
 
-@media (max-width: 768px) {
-  .container {
-    flex-direction: column;
-  }
-  .sidebar {
-    flex-direction: row;
-    width: 100%;
-    padding: 10px;
-    justify-content: space-around;
-  }
+  @media (max-width: 768px) {
+    .container {
+      flex-direction: column;
+    }
+    .sidebar {
+      position: static; /* revert to normal flow on small screens */
+      width: 100%;
+      flex-direction: row;
+      padding: 10px;
+      justify-content: space-around;
+    }
+    .main {
+      margin-left: 0; /* reset margin on small screens */
+    }
   .menu {
     display: flex;
     gap: 10px;

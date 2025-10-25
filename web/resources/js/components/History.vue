@@ -344,17 +344,26 @@ export default {
   flex-direction: row;
   min-height: 100vh;
   min-width: 100vw;
+  height: 100vh; /* full viewport height */
+  overflow: hidden; /* confine scrolling to main */
 }
 
 .sidebar {
-  width: 220px;
-  background: #2c3e50;
-  color: white;
-  display: flex;
-  flex-direction: column;
-  padding: 30px 20px;
-  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
-  flex-shrink: 0;
+   width: 220px;
+      background: #2c3e50;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      padding: 30px 20px;
+      box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+      flex-shrink: 0;
+      position: fixed; /* keep sidebar fixed while main scrolls */
+      top: 0;
+      left: 0;
+      height: 100vh;
+      overflow-y: auto; /* allow sidebar to scroll if content overflows */
+      z-index: 1000;
+    
 }
 
 .menu {
@@ -380,20 +389,24 @@ export default {
 }
 
 .main {
-  flex: 1;
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  margin-left: 0;
+        flex: 1;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      margin-left: 220px; /* account for fixed sidebar width */
+      min-height: 100vh; /* ensure main area provides its own scroll */
 }
 
 .topbar {
+position: sticky;   /* stays visible while scrolling */
+  top: 0;             /* sticks to the top */
+  z-index: 1000;      /* ensures it stays above content */
+  background-color: #007e3a;
   display: flex;
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
-  background-color: #007e3a;
   padding: 10px 20px;
   color: white;
   border-radius: 8px;

@@ -46,7 +46,7 @@
             <div class="item-actions">
               <button class="edit-btn" @click="openModal('edit', item)">EDIT</button>
               <button class="request-btn" @click="openModal('request', item)">Request ITEM</button>
-              <button class="qr-btn" @click="generateQRCode(item)">QR CODE</button>
+              <!-- QR CODE removed -->
               <button class="delete-btn" @click="deleteItem(item.id)">DELETE</button>
             </div>
           </div>
@@ -88,7 +88,7 @@
             <td>{{ formatTime(borrower.time_out) }}</td>
               <td>{{ borrower.item?.name || 'N/A' }}</td>
               <td>
-                <button class="receipt-btn" @click="generateBorrowerQRCode(borrower)">
+                <button class="receipt-btn" disabled>
                   📄 Receipt
                 </button>
               </td>
@@ -234,53 +234,12 @@
       </div>
     </div>
 
-    <!-- QR Code Modal -->
-    <div v-if="showQRModal" class="modal" @click.self="closeQRModal">
-      <div class="modal-content qr-modal">
-        <span class="close" @click="closeQRModal">&times;</span>
-        <h3>{{ currentItem ? `${currentItem.name} - QR Codes (${currentItem.qty} units)` : 'QR Code' }}</h3>
-        
-        <!-- Multiple QR Codes Display -->
-        <div v-if="qrCodes.length > 0" class="qr-codes-grid">
-          <div v-for="(qr, index) in qrCodes" :key="index" class="qr-unit">
-            <h4>Unit {{ qr.unitNumber }} of {{ currentItem.qty }}</h4>
-            <img :src="qr.image" alt="QR Code" class="qr-image" />
-            <div class="qr-unit-info">
-              <p><strong>Unique ID:</strong> {{ qr.data.uniqueId }}</p>
-              <p><strong>Item:</strong> {{ qr.data.itemName }}</p>
-            </div>
-            <div class="qr-unit-actions">
-              <button @click="downloadSingleQR(qr)" class="download-btn">📥 Download</button>
-              <button @click="printSingleQR(qr)" class="print-btn">🖨️ Print</button>
-            </div>
-          </div>
-        </div>
-        
-        <!-- Single QR Code Display (for borrower receipts) -->
-        <div v-else-if="qrCodeImage" class="qr-container">
-          <img :src="qrCodeImage" alt="QR Code" class="qr-image" />
-          <div class="qr-info">
-            <p><strong>Scan this QR code to view details</strong></p>
-            <div class="qr-data">
-              <small>{{ qrCodeData }}</small>
-            </div>
-          </div>
-        </div>
-        
-        <div class="qr-actions">
-          <button v-if="qrCodes.length > 0" @click="downloadAllQRCodes" class="download-btn">📥 Download All</button>
-          <button v-if="qrCodes.length > 0" @click="printAllQRCodes" class="print-btn">🖨️ Print All</button>
-          <button v-else @click="downloadQRCode" class="download-btn">📥 Download QR</button>
-          <button v-else @click="printQRCode" class="print-btn">🖨️ Print QR</button>
-        </div>
-      </div>
-    </div>
+    <!-- QR Code Modal removed -->
   </div>
 </template>
 
 <script>
 import axios from "axios";
-import QRCode from "qrcode";
 
 export default {
   name: "Dashboard",
@@ -296,10 +255,7 @@ export default {
       form: {},
       loading: false,
       courseOptions: [],
-      showQRModal: false,
-      qrCodeData: "",
-      qrCodeImage: "",
-      qrCodes: [], // Array to store multiple QR codes
+  // QR code state removed
       
       // Custom Alert System
       showAlert: false,
@@ -477,7 +433,7 @@ export default {
           alert("Request submitted!");
           this.fetchBorrowers();
         } catch (e) {
-          alert("Failed to submit request.");
+          alert("The request time is full.");
           console.error(e);
         }
       } else if (this.modalType === "add") {
@@ -625,257 +581,7 @@ export default {
       delete axios.defaults.headers.common['Authorization'];
       this.$router.push('/');
     },
-    async generateQRCode(item) {
-      try {
-        // Generate QR codes for each individual unit of the item
-        const qrCodes = [];
-        
-        for (let i = 1; i <= item.qty; i++) {
-          const qrData = {
-            itemId: item.id,
-            itemName: item.name,
-            unitNumber: i,
-            totalUnits: item.qty,
-            uniqueId: `${item.id}-${i}`, // Unique identifier for each unit
-            timestamp: new Date().toISOString(),
-            type: 'item_borrow'
-          };
-          
-          const qrImage = await QRCode.toDataURL(JSON.stringify(qrData), {
-            width: 200,
-            margin: 2,
-            color: {
-              dark: '#000000',
-              light: '#FFFFFF'
-            }
-          });
-          
-          qrCodes.push({
-            data: qrData,
-            image: qrImage,
-            unitNumber: i
-          });
-        }
-        
-        // Show modal with all QR codes
-        this.showQRModal = true;
-        this.qrCodes = qrCodes;
-        this.currentItem = item;
-      } catch (error) {
-        console.error('Error generating QR codes:', error);
-        alert('Failed to generate QR codes');
-      }
-    },
-    async generateBorrowerQRCode(borrower) {
-      try {
-        // Create QR code data with borrower information
-        const qrData = {
-          borrowerId: borrower.id,
-          borrowerName: borrower.name,
-          itemName: borrower.item?.name || 'N/A',
-          date: borrower.date,
-          timeIn: borrower.time_in,
-          timeOut: borrower.time_out,
-          timestamp: new Date().toISOString(),
-          type: 'borrower_receipt'
-        };
-        
-        this.qrCodeData = JSON.stringify(qrData);
-        this.qrCodeImage = await QRCode.toDataURL(this.qrCodeData, {
-          width: 200,
-          margin: 2,
-          color: {
-            dark: '#000000',
-            light: '#FFFFFF'
-          }
-        });
-        this.showQRModal = true;
-      } catch (error) {
-        console.error('Error generating QR code:', error);
-        alert('Failed to generate QR code');
-      }
-    },
-    closeQRModal() {
-      this.showQRModal = false;
-      this.qrCodeData = "";
-      this.qrCodeImage = "";
-      this.qrCodes = [];
-      this.currentItem = null;
-    },
-    downloadQRCode() {
-      if (this.qrCodeImage) {
-        const link = document.createElement('a');
-        link.download = 'qr-code.png';
-        link.href = this.qrCodeImage;
-        link.click();
-      }
-    },
-    printQRCode() {
-      if (this.qrCodeImage) {
-        const printWindow = window.open('', '_blank');
-        printWindow.document.write(`
-          <html>
-            <head>
-              <title>QR Code Receipt</title>
-              <style>
-                body { 
-                  font-family: Arial, sans-serif; 
-                  text-align: center; 
-                  padding: 20px;
-                }
-                .qr-print { 
-                  max-width: 300px; 
-                  margin: 0 auto;
-                }
-                .qr-print img { 
-                  width: 100%; 
-                  height: auto;
-                }
-                .qr-info { 
-                  margin-top: 20px; 
-                  text-align: left;
-                }
-              </style>
-            </head>
-            <body>
-              <div class="qr-print">
-                <h2>QR Code Receipt</h2>
-                <img src="${this.qrCodeImage}" alt="QR Code" />
-                <div class="qr-info">
-                  <p><strong>Generated:</strong> ${new Date().toLocaleString()}</p>
-                  <p><strong>Data:</strong> ${this.qrCodeData}</p>
-                </div>
-              </div>
-            </body>
-          </html>
-        `);
-        printWindow.document.close();
-        printWindow.print();
-      }
-    },
-    downloadSingleQR(qr) {
-      const link = document.createElement('a');
-      link.download = `qr-code-unit-${qr.unitNumber}.png`;
-      link.href = qr.image;
-      link.click();
-    },
-    printSingleQR(qr) {
-      const printWindow = window.open('', '_blank');
-      printWindow.document.write(`
-        <html>
-          <head>
-            <title>QR Code - Unit ${qr.unitNumber}</title>
-            <style>
-              body { 
-                font-family: Arial, sans-serif; 
-                text-align: center; 
-                padding: 20px;
-              }
-              .qr-print { 
-                max-width: 300px; 
-                margin: 0 auto;
-              }
-              .qr-print img { 
-                width: 100%; 
-                height: auto;
-              }
-              .qr-info { 
-                margin-top: 20px; 
-                text-align: left;
-              }
-            </style>
-          </head>
-          <body>
-            <div class="qr-print">
-              <h2>QR Code - Unit ${qr.unitNumber}</h2>
-              <img src="${qr.image}" alt="QR Code" />
-              <div class="qr-info">
-                <p><strong>Item:</strong> ${qr.data.itemName}</p>
-                <p><strong>Unit:</strong> ${qr.unitNumber} of ${qr.data.totalUnits}</p>
-                <p><strong>Unique ID:</strong> ${qr.data.uniqueId}</p>
-                <p><strong>Generated:</strong> ${new Date().toLocaleString()}</p>
-              </div>
-            </div>
-          </body>
-        </html>
-      `);
-      printWindow.document.close();
-      printWindow.print();
-    },
-    downloadAllQRCodes() {
-      this.qrCodes.forEach((qr, index) => {
-        setTimeout(() => {
-          const link = document.createElement('a');
-          link.download = `qr-code-unit-${qr.unitNumber}.png`;
-          link.href = qr.image;
-          link.click();
-        }, index * 500); // Stagger downloads to avoid browser blocking
-      });
-    },
-    printAllQRCodes() {
-      const printWindow = window.open('', '_blank');
-      let html = `
-        <html>
-          <head>
-            <title>All QR Codes - ${this.currentItem.name}</title>
-            <style>
-              body { 
-                font-family: Arial, sans-serif; 
-                text-align: center; 
-                padding: 20px;
-              }
-              .qr-grid { 
-                display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-                gap: 20px;
-                max-width: 800px;
-                margin: 0 auto;
-              }
-              .qr-item { 
-                border: 1px solid #ddd;
-                padding: 15px;
-                border-radius: 8px;
-              }
-              .qr-item img { 
-                width: 100%; 
-                height: auto;
-                max-width: 150px;
-              }
-              .qr-info { 
-                margin-top: 10px; 
-                text-align: left;
-                font-size: 12px;
-              }
-            </style>
-          </head>
-          <body>
-            <h2>QR Codes for ${this.currentItem.name} (${this.currentItem.qty} units)</h2>
-            <div class="qr-grid">
-      `;
-      
-      this.qrCodes.forEach(qr => {
-        html += `
-          <div class="qr-item">
-            <h4>Unit ${qr.unitNumber}</h4>
-            <img src="${qr.image}" alt="QR Code" />
-            <div class="qr-info">
-              <p><strong>ID:</strong> ${qr.data.uniqueId}</p>
-              <p><strong>Item:</strong> ${qr.data.itemName}</p>
-            </div>
-          </div>
-        `;
-      });
-      
-      html += `
-            </div>
-          </body>
-        </html>
-      `;
-      
-      printWindow.document.write(html);
-      printWindow.document.close();
-      printWindow.print();
-    },
+    // QR code methods removed
   },
 };
 </script>
@@ -902,13 +608,20 @@ export default {
     }
 
     .sidebar {
-      width: 220px;
-  background: #2c3e50;
-  color: white;
-  display: flex;
-  flex-direction: column;
-  padding: 30px 20px;
-  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+     width: 220px;
+      background: #2c3e50;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      padding: 30px 20px;
+      box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+      flex-shrink: 0;
+      position: fixed; /* keep sidebar fixed while main scrolls */
+      top: 0;
+      left: 0;
+      height: 100vh;
+      overflow-y: auto; /* allow sidebar to scroll if content overflows */
+      z-index: 1000;
 }
 
 .menu {
@@ -934,21 +647,27 @@ export default {
 }
 
     .main {
-      flex: 1;
+          flex: 1;
       padding: 20px;
       display: flex;
       flex-direction: column;
+      width: 100%;
+      margin-left: 220px; /* account for fixed sidebar width */
+      min-height: 100vh; /* ensure main area provides its own scroll */
     }
 
     .topbar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      background-color: #007e3a;
-      padding: 10px 20px;
-      color: white;
-      border-radius: 8px;
+    position: sticky;   /* stays visible while scrolling */
+  top: 0;             /* sticks to the top */
+  z-index: 1000;      /* ensures it stays above content */
+  background-color: #007e3a;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 10px 20px;
+  color: white;
+  border-radius: 8px;
     }
 
     .topbar .logo {
@@ -1232,167 +951,7 @@ export default {
   background: #c0392b;
 }
 
-/* QR Code Modal Styles */
-.qr-modal {
-  max-width: 500px;
-  text-align: center;
-}
-
-.qr-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin: 20px 0;
-}
-
-.qr-image {
-  width: 200px;
-  height: 200px;
-  border: 2px solid #ddd;
-  border-radius: 8px;
-  margin-bottom: 15px;
-}
-
-.qr-info {
-  background: #f8f9fa;
-  padding: 15px;
-  border-radius: 8px;
-  margin: 15px 0;
-  text-align: left;
-}
-
-.qr-info p {
-  margin: 5px 0;
-  color: #333;
-}
-
-.qr-data {
-  background: #e9ecef;
-  padding: 10px;
-  border-radius: 4px;
-  margin-top: 10px;
-  word-break: break-all;
-  font-family: monospace;
-  font-size: 10px;
-  color: #666;
-}
-
-.qr-actions {
-  display: flex;
-  gap: 10px;
-  justify-content: center;
-  margin-top: 20px;
-}
-
-.download-btn, .print-btn {
-  padding: 10px 20px;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: bold;
-  transition: background 0.3s ease;
-}
-
-.download-btn {
-  background-color: #28a745;
-  color: white;
-}
-
-.download-btn:hover {
-  background-color: #218838;
-}
-
-.print-btn {
-  background-color: #007bff;
-  color: white;
-}
-
-.print-btn:hover {
-  background-color: #0056b3;
-}
-
-/* Multiple QR Codes Grid */
-.qr-codes-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 20px;
-  margin: 20px 0;
-  max-height: 60vh;
-  overflow-y: auto;
-}
-
-.qr-unit {
-  border: 2px solid #e9ecef;
-  border-radius: 12px;
-  padding: 15px;
-  text-align: center;
-  background: #f8f9fa;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.qr-unit:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-}
-
-.qr-unit h4 {
-  margin: 0 0 10px 0;
-  color: #495057;
-  font-size: 16px;
-}
-
-.qr-unit .qr-image {
-  width: 150px;
-  height: 150px;
-  border: 2px solid #ddd;
-  border-radius: 8px;
-  margin: 10px 0;
-}
-
-.qr-unit-info {
-  background: #e9ecef;
-  padding: 10px;
-  border-radius: 6px;
-  margin: 10px 0;
-  text-align: left;
-}
-
-.qr-unit-info p {
-  margin: 5px 0;
-  font-size: 12px;
-  color: #495057;
-}
-
-.qr-unit-actions {
-  display: flex;
-  gap: 8px;
-  justify-content: center;
-  margin-top: 10px;
-}
-
-.qr-unit-actions .download-btn,
-.qr-unit-actions .print-btn {
-  padding: 6px 12px;
-  font-size: 11px;
-  border-radius: 4px;
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-  .qr-codes-grid {
-    grid-template-columns: 1fr;
-    gap: 15px;
-  }
-  
-  .qr-unit {
-    padding: 12px;
-  }
-  
-  .qr-unit .qr-image {
-    width: 120px;
-    height: 120px;
-  }
-}
+/* QR styles removed */
 
 /* Custom Alert System */
 .custom-alert {
