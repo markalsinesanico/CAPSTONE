@@ -620,9 +620,19 @@ body { background: #f5f5f5; }
 table { width: 100%; border-collapse: collapse; margin-top: 10px; }
 table th, table td { padding: 10px; border-bottom: 1px solid #ddd; text-align: center; }
 
-/* Modal shell */
-.modal { position: fixed; z-index: 999; inset: 0; background-color: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; padding: 16px; }
-.modal-content { background-color: white; padding: 24px; border-radius: 14px; width: 400px; max-width: 95vw; position: relative; box-shadow: 0 4px 24px rgba(0,0,0,0.18); max-height: 90vh; overflow-y: auto; }
+.modal { position: fixed; /* full-screen overlay */
+  inset: 0;
+  /* keep overlay behind the sticky topbar (topbar z-index:1000) */
+  z-index: 900;
+  background-color: rgba(0,0,0,0.5);
+  display: flex;
+  /* align modal-content to start so it appears below the topbar */
+  align-items: flex-start;
+  justify-content: center;
+  /* push the modal content down below the sticky topbar (approx 72px) + small gap */
+  padding: calc(72px + 16px) 16px 16px 16px;
+}
+.modal-content { background-color: white; padding: 24px; border-radius: 14px; width: 400px; max-width: 95vw; position: relative; box-shadow: 0 4px 24px rgba(0,0,0,0.18); max-height: calc(90vh - 72px); overflow-y: auto; }
 .modal-content--lg { width: 560px; max-width: 95vw; max-height: 90vh; overflow-y: auto; }
 @media (min-width: 1024px) { .modal-content--lg { width: 720px; } }
 .close { position: absolute; right: 16px; top: 10px; font-size: 22px; cursor: pointer; }

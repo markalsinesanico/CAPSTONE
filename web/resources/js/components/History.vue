@@ -345,7 +345,7 @@ export default {
   min-height: 100vh;
   min-width: 100vw;
   height: 100vh; /* full viewport height */
-  overflow: hidden; /* confine scrolling to main */
+ 
 }
 
 .sidebar {
@@ -389,13 +389,17 @@ export default {
 }
 
 .main {
-        flex: 1;
-      padding: 20px;
-      display: flex;
-      flex-direction: column;
-      width: 100%;
-      margin-left: 220px; /* account for fixed sidebar width */
-      min-height: 100vh; /* ensure main area provides its own scroll */
+  flex: 1;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  margin-left: 220px;
+  min-height: 100vh;
+
+  /* ADD THESE LINES */
+  overflow-y: auto;     /* allows scrolling */
+  height: 100vh; 
 }
 
 .topbar {
@@ -515,10 +519,12 @@ position: sticky;   /* stays visible while scrolling */
 }
 
 .history-content {
-  background: white;
+ background: white;
   border-radius: 10px;
   padding: 20px;
   box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  max-height: calc(100vh - 250px); /* adjust if topbar/filter is tall */
+  overflow-y: auto;  
 }
 
 .no-items {

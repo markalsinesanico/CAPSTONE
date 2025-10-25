@@ -828,34 +828,39 @@ export default {
     .cancel-btn { background-color: #dc3545; }
 
     .modal {
-      position: fixed;
-      z-index: 999;
-      left: 0; top: 0;
-      width: 100%; height: 100%;
-      background-color: rgba(0, 0, 0, 0.5);
-      display: flex;
-      align-items: center;
-      justify-content: center;
+       position: fixed;
+  top: 70px; /* push down below the topbar (adjust if topbar height changes) */
+  left: 0;
+  width: 100%;
+  height: calc(100% - 70px); /* fill remaining space below topbar */
+
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  overflow-y: auto;
+  z-index: 1100; /* slightly higher than topbar */
+  padding-top: 20px;
     }
 
    .modal-content {
-  background-color: white;
-  padding: 30px 24px 24px 24px;
-  border-radius: 14px;
-  width: 90%; /* more responsive on small screens */
-  max-width: 500px; /* limit width on big screens */
-  max-height: 90vh; /* prevent going off screen */
-  overflow-y: auto; /* scroll if content is taller */
+ background: #fff;
+  border-radius: 10px;
+  padding: 20px;
+  width: 450px;
+  max-width: 90%;
   position: relative;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.18);
+  box-shadow: 0 0 15px rgba(0,0,0,0.3);
+  z-index: 1200;
+  margin-bottom: 40px;
+
 }
 
     .close {
-      position: absolute;
-      right: 20px;
-      top: 10px;
-      font-size: 22px;
-      cursor: pointer;
+     position: absolute;
+  top: 10px;
+  right: 15px;
+  font-size: 24px;
+  cursor: pointer;
     }
 
     @media (max-width: 768px) {
