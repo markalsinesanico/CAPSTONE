@@ -71,7 +71,6 @@
               <th>Time In</th>
               <th>Time Out</th>
               <th>Item</th>
-              <th>Receipt</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -87,11 +86,6 @@
              <td>{{ formatTime(borrower.time_in) }}</td>
             <td>{{ formatTime(borrower.time_out) }}</td>
               <td>{{ borrower.item?.name || 'N/A' }}</td>
-              <td>
-                <button class="receipt-btn" disabled>
-                  📄 Receipt
-                </button>
-              </td>
               <td>
                 <button class="cancel-btn" @click="cancelRequest(borrower.id)">
                   ❌ Cancel
