@@ -26,6 +26,7 @@ class RoomRequestController extends Controller
             'course'      => 'required|string|max:100',
             'date'        => 'required|date',
             'email'       => 'nullable|email|max:255',
+            'mobile'      => 'nullable|string|max:20',
             'time_in'     => 'required|date_format:H:i',
             'time_out'    => 'required|date_format:H:i|after:time_in',
             'room_id'     => 'required|exists:rooms,id',

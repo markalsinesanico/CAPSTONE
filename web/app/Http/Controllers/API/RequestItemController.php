@@ -25,6 +25,7 @@ class RequestItemController extends Controller
             'course' => 'required|string|max:255',
             'date' => 'required|date',
             'email' => 'nullable|email|max:255',
+            'mobile' => 'nullable|string|max:20',
             'time_in' => 'required',
             'time_out' => 'required',
             'item_id' => 'required|exists:items,id',

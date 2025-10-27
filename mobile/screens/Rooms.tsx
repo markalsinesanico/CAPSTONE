@@ -104,6 +104,7 @@ type Room = {
 type RoomBookingRequest = {
   name: string;
   borrower_id: string;
+  mobile: string;
   year: string;
   department: string;
   course: string;
@@ -140,6 +141,7 @@ export default function Rooms(): JSX.Element {
 
   const [fullName, setFullName] = useState<string>("");
   const [idNumber, setIdNumber] = useState<string>("");
+  const [mobile, setMobile] = useState<string>("");
   const [year, setYear] = useState<string>("");
   const [department, setDepartment] = useState<string>("");
   const [course, setCourse] = useState<string>("");
@@ -259,6 +261,7 @@ const handleTimeChange = (type: "timeIn" | "timeOut") => (event: DateTimePickerE
       const requestData: RoomBookingRequest = {
         name: fullName,
         borrower_id: idNumber,
+        mobile: mobile,
         year: year,
         department: department,
         course: course,
@@ -277,6 +280,7 @@ const handleTimeChange = (type: "timeIn" | "timeOut") => (event: DateTimePickerE
         // Reset form
         setFullName('');
         setIdNumber('');
+        setMobile('');
         setYear('');
         setDepartment('');
         setCourse('');
@@ -389,6 +393,12 @@ const handleTimeChange = (type: "timeIn" | "timeOut") => (event: DateTimePickerE
                 placeholder="ID Number"
                 style={styles.input}
                 onChangeText={setIdNumber}
+              />
+              <TextInput
+                value={mobile}
+                placeholder=" Mobile Number"
+                style={styles.input}
+                onChangeText={setMobile}
               />
 
               {/* Year Picker */}

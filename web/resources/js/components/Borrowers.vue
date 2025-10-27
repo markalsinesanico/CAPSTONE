@@ -137,6 +137,11 @@
               </label>
 
               <label>
+                <span>📱 Mobile Number</span>
+                <input v-model="form.mobile" placeholder="Enter mobile number" />
+              </label>
+
+              <label>
                 <span>📅 Year</span>
                 <select v-model="form.year" required>
                   <option disabled value="">Select Year</option>
@@ -376,6 +381,7 @@ export default {
         this.form = {
           name: "",
           id: "",
+          mobile: "",
           year: "",
           dept: "",
           course: "",
@@ -415,6 +421,7 @@ export default {
           await axios.post("/api/requests", {
             name: this.form.name,
             borrower_id: this.form.id,
+            mobile: this.form.mobile,
             year: this.form.year,
             department: this.form.dept,
             course: this.form.course,
@@ -833,7 +840,6 @@ export default {
   left: 0;
   width: 100%;
   height: calc(100% - 70px); /* fill remaining space below topbar */
-
   display: flex;
   justify-content: center;
   align-items: flex-start;

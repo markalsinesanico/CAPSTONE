@@ -20,6 +20,7 @@ class RoomRequest extends Model
         'time_out',
         'room_id',
         'status',
+        'mobile',
         'email',
         'returned',
     ];

@@ -26,6 +26,7 @@ return new class extends Migration {
 
             // status
             $table->string('status')->default('pending'); // pending|approved|rejected|cancelled
+            $table->string('mobile')->nullable(); // mobile number field
 
             $table->timestamps();
 

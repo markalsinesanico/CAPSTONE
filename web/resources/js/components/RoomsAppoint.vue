@@ -172,6 +172,11 @@
             </label>
 
             <label>
+              <span>📱 Mobile Number</span>
+              <input v-model.trim="requestForm.mobile" placeholder="Enter mobile number" />
+            </label>
+
+            <label>
               <span>📅 Year</span>
               <select v-model="requestForm.year" required>
                 <option disabled value="">Select Year</option>
@@ -239,9 +244,6 @@
 
 <script>
 import axios from "axios";
-const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000",
-});
 
 export default {
   name: "RoomsDashboard",
@@ -265,6 +267,7 @@ export default {
       requestForm: {
         name: "",
         borrower_id: "",
+        mobile: "",
         year: "",
         department: "",
         course: "",
@@ -357,7 +360,7 @@ export default {
     // --- rooms ---
     async fetchRooms() {
       try {
-        const { data } = await api.get("/api/rooms");
+        const { data } = await axios.get("/api/rooms");
         this.rooms = data;
       } catch (err) {
         console.error("Failed to fetch rooms:", err);
@@ -387,10 +390,10 @@ export default {
       this.submitting = true;
       try {
         if (this.roomModalType === "add") {
-          const { data } = await api.post("/api/rooms", { ...this.roomForm });
+          const { data } = await axios.post("/api/rooms", { ...this.roomForm });
           this.rooms.unshift(data);
         } else if (this.roomModalType === "edit" && this.editRoomId) {
-          const { data } = await api.put(`/api/rooms/${this.editRoomId}`, { ...this.roomForm });
+          const { data } = await axios.put(`/api/rooms/${this.editRoomId}`, { ...this.roomForm });
           const idx = this.rooms.findIndex((r) => r.id === this.editRoomId);
           if (idx !== -1) this.rooms.splice(idx, 1, data);
         }
@@ -404,7 +407,7 @@ export default {
     async deleteRoom(id) {
       if (!confirm("Are you sure you want to delete this room?")) return;
       try {
-        await api.delete(`/api/rooms/${id}`);
+        await axios.delete(`/api/rooms/${id}`);
         this.rooms = this.rooms.filter((r) => r.id !== id);
       } catch (err) {
         console.error("Delete failed:", err);
@@ -419,6 +422,7 @@ export default {
       this.requestForm = {
         name: "",
         borrower_id: "",
+        mobile: "",
         year: "",
         department: "",
         course: "",
@@ -435,7 +439,7 @@ export default {
     },
     async fetchRoomRequests() {
       try {
-        const { data } = await api.get("/api/room-requests");
+        const { data } = await axios.get("/api/room-requests");
         this.roomRequests = data;
       } catch (err) {
         console.error("Failed to fetch requests:", err);
@@ -465,7 +469,7 @@ export default {
     async submitRoomRequest() {
       this.submitting = true;
       try {
-        await api.post("/api/room-requests", { ...this.requestForm });
+        await axios.post("/api/room-requests", { ...this.requestForm });
         this.submitting = false;
         this.closeRequestRoomModal();
         alert("Room request submitted!");
@@ -486,7 +490,7 @@ export default {
       if (!this.requestToCancel) return;
       
       try {
-        await api.delete(`/api/room-requests/${this.requestToCancel}`);
+        await axios.delete(`/api/room-requests/${this.requestToCancel}`);
         this.showCustomAlert('success', 'Success!', 'Room request cancelled successfully!');
         this.fetchRoomRequests();
         this.closeConfirmDialog();
@@ -536,6 +540,12 @@ export default {
     const user = JSON.parse(localStorage.getItem('user'));
     if (user && user.email) {
       this.userEmail = user.email;
+    }
+    
+    // Set up authentication token
+    const token = localStorage.getItem('token');
+    if (token) {
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     }
   }
 };

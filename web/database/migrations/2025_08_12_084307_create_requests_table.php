@@ -20,6 +20,7 @@ return new class extends Migration
             $table->time('time_out');
             $table->unsignedBigInteger('item_id');
             $table->string('status')->default('pending'); // add this line
+            $table->string('mobile')->nullable(); // mobile number field
             $table->timestamps();
 
             $table->foreign('item_id')->references('id')->on('items')->onDelete('cascade');

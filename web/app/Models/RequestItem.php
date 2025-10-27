@@ -20,6 +20,7 @@ class RequestItem extends Model
         'item_id',
         'item_unit_id',
         'status', // add this
+        'mobile',
         'email',
         'returned',
     ];

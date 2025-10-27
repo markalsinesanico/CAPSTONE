@@ -46,6 +46,7 @@ interface Item {
 type FormState = {
   fullName: string;
   idNumber: string;
+  mobile: string;
   year: string;
   dept: string;
   course: string;
@@ -122,6 +123,7 @@ export default function Screen(): JSX.Element {
   const [form, setForm] = useState<FormState>({
     fullName: "",
     idNumber: "",
+    mobile: "",
     year: "",
     dept: "",
     course: "",
@@ -233,6 +235,7 @@ export default function Screen(): JSX.Element {
       const requestData = {
         name: form.fullName,
         borrower_id: form.idNumber,
+        mobile: form.mobile,
         year: form.year,
         department: form.dept,
         course: form.course,
@@ -261,6 +264,7 @@ export default function Screen(): JSX.Element {
     setForm({
       fullName: "",
       idNumber: "",
+      mobile: "",
       year: "",
       dept: "",
       course: "",
@@ -384,6 +388,12 @@ export default function Screen(): JSX.Element {
               placeholder="School i.d"
               style={styles.input}
               onChangeText={(t) => handleFormChange("idNumber", t)}
+            />
+            <TextInput
+              value={form.mobile}
+              placeholder=" Mobile Number"
+              style={styles.input}
+              onChangeText={(t) => handleFormChange("mobile", t)}
             />
 
             {/* Year Picker */}
