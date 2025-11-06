@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\Models\RequestItem;
 use App\Models\Item;
 use App\Models\Notification;
+use App\Services\Sms\SemaphoreSmsService;
 
 class RequestItemController extends Controller
 {
@@ -220,7 +221,7 @@ class RequestItemController extends Controller
     /**
      * Send overdue notification for an item request
      */
-    public function sendOverdueNotification($id)
+    public function sendOverdueNotification($id, SemaphoreSmsService $sms)
     {
         try {
             $requestItem = RequestItem::with('item')->findOrFail($id);
@@ -255,14 +256,30 @@ class RequestItemController extends Controller
                     'request_id' => $requestItem->id,
                     'request_data' => $requestItem->toArray()
                 ]);
-                return response()->json(['message' => 'No email found for this request'], 400);
+                // don't fail here; proceed to SMS if possible
             }
             
+            // Send SMS if mobile is available and not already sent
+            if ($requestItem->mobile && ! $requestItem->overdue_sms_sent_at) {
+                $message = sprintf(
+                    'Reminder: %s borrowed on %s from %s to %s is overdue. Please return it immediately.',
+                    $requestItem->item?->name ?? 'an item',
+                    optional($requestItem->date)->format('Y-m-d'),
+                    $requestItem->time_in,
+                    $requestItem->time_out
+                );
+                if ($sms->send($requestItem->mobile, $message)) {
+                    $requestItem->overdue_sms_sent_at = now();
+                    $requestItem->save();
+                }
+            }
+
             return response()->json([
                 'message' => 'Overdue notification sent successfully',
                 'id' => $id,
                 'item_name' => $requestItem->item->name,
-                'user_email' => $requestItem->email
+                'user_email' => $requestItem->email,
+                'sms_sent' => (bool) $requestItem->overdue_sms_sent_at,
             ]);
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error('Failed to send overdue notification', ['error' => $e->getMessage(), 'id' => $id]);

@@ -8,5 +8,5 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
-// Schedule the overdue requests check to run every minute
-Schedule::command('app:check-overdue-requests')->everyMinute();
+// Schedule the overdue SMS dispatch to run every minute
+Schedule::command('requests:send-overdue-sms')->everyMinute();

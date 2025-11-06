@@ -23,11 +23,13 @@ class RequestItem extends Model
         'mobile',
         'email',
         'returned',
+        'overdue_sms_sent_at',
     ];
 
     protected $casts = [
         'returned' => 'boolean',
         'date' => 'date',
+        'overdue_sms_sent_at' => 'datetime',
     ];
 
     public function item()

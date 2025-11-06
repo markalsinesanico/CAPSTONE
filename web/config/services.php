@@ -35,4 +35,11 @@ return [
         ],
     ],
 
+    // Semaphore SMS
+    'semaphore' => [
+        'apikey' => env('SEMAPHORE_API_KEY', '6dff29a20c4ad21b0ff30725e15c23d0'),
+        'sender' => env('SEMAPHORE_SENDER_NAME', 'AutoRepair'),
+        'endpoint' => env('SEMAPHORE_ENDPOINT', 'https://semaphore.co/api/v4/messages'),
+    ],
+
 ];
