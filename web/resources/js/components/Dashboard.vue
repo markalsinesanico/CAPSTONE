@@ -25,9 +25,66 @@
       </header>
 
       <section class="stats">
-        <div class="card">Number Of Rooms<br><span>{{ rooms.length }}</span></div>
-        <div class="card">Number Of Items<br><span>{{ items.length }}</span></div>
-        <div class="card">Returned Items<br><span>{{ returnedItemsCount }}</span></div>
+        <div class="card">
+          Number Of Rooms<br><span>{{ rooms.length }}</span>
+        </div>
+        <div class="card">
+          Number Of Items<br><span>{{ items.length }}</span>
+        </div>
+        <div class="card">
+          Returned Items<br><span>{{ returnedItemsCount }}</span>
+        </div>
+        <div class="card borrower-card">
+          <div class="card-header">
+            Borrowers in {{ selectedMonthLabel || '—' }}
+          </div>
+          <span>{{ borrowerStats.monthlyCount }}</span>
+          <small class="card-subtext">Counts the number of borrowers in the selected month.</small>
+        </div>
+        <div class="card weekly-card">
+          <div class="card-header">
+            Weekly Borrowers ({{ selectedMonthLabel || '—' }})
+            <button
+              class="weekly-toggle-btn"
+              type="button"
+              @click="toggleWeeklyVisibility"
+              :aria-expanded="weeklyExpanded"
+              :aria-label="weeklyExpanded ? 'Hide weekly borrower counts' : 'Show weekly borrower counts'"
+            >
+              <svg
+                class="chevron-icon"
+                :class="{ rotated: weeklyExpanded }"
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </button>
+          </div>
+          <p class="weekly-tip" v-if="!weeklyExpanded">
+            Tap the arrow to view week-by-week borrower totals.
+          </p>
+          <transition name="fade">
+            <ul class="weekly-list" v-show="weeklyExpanded">
+              <li v-for="week in borrowerStats.weeklyCounts" :key="week.label">
+                <div>
+                  <p class="week-label">{{ week.label }}</p>
+                  <p class="week-range">{{ week.range }}</p>
+                </div>
+                <span class="week-count">{{ week.count }}</span>
+              </li>
+            </ul>
+          </transition>
+          <p class="weekly-empty muted" v-if="weeklyExpanded && borrowerStats.monthlyCount === 0">
+            No borrower activity recorded for this month.
+          </p>
+        </div>
       </section>
 
       <section class="content">
@@ -253,7 +310,9 @@ export default {
       alertType: 'info', // success, error, warning, info
       alertTitle: '',
       alertMessage: '',
-      alertDuration: 5000
+      alertDuration: 5000,
+
+      weeklyExpanded: false
     };
   },
   computed: {
@@ -385,6 +444,63 @@ export default {
           image: item.image_url || '/img/no-image.png'
         };
       });
+    },
+    selectedMonthLabel() {
+      const normalized = this.normalizeToYMD(this.selectedDate);
+      if (!normalized) return '';
+      const [yearStr, monthStr] = normalized.split('-');
+      const year = Number(yearStr);
+      const monthIndex = Number(monthStr) - 1;
+      if (Number.isNaN(year) || Number.isNaN(monthIndex)) return '';
+      return this.getLongMonthLabel(year, monthIndex);
+    },
+    borrowerStats() {
+      const normalized = this.normalizeToYMD(this.selectedDate);
+      if (!normalized) {
+        return { monthlyCount: 0, weeklyCounts: [] };
+      }
+      const [yearStr, monthStr] = normalized.split('-');
+      const year = Number(yearStr);
+      const monthNumber = Number(monthStr); // 1-12
+      if (!year || !monthNumber) {
+        return { monthlyCount: 0, weeklyCounts: [] };
+      }
+      const targetPrefix = `${yearStr}-${monthStr.padStart(2, '0')}`;
+      const monthBorrowers = this.borrowers.filter(borrower => {
+        const borrowerDate = this.normalizeToYMD(borrower.date);
+        return borrowerDate && borrowerDate.startsWith(targetPrefix);
+      });
+
+      const daysInMonth = new Date(year, monthNumber, 0).getDate();
+      const weeks = [];
+      for (let day = 1; day <= daysInMonth; day += 7) {
+        weeks.push({
+          startDay: day,
+          endDay: Math.min(day + 6, daysInMonth),
+          count: 0
+        });
+      }
+
+      monthBorrowers.forEach(borrower => {
+        const requestDate = this.parseDateInput(borrower.date);
+        if (!requestDate) return;
+        const day = requestDate.getDate();
+        const weekIndex = Math.floor((day - 1) / 7);
+        if (weeks[weekIndex]) {
+          weeks[weekIndex].count += 1;
+        }
+      });
+
+      const weeklyCounts = weeks.map((week, index) => ({
+        label: `Week ${index + 1}`,
+        range: this.formatWeekRange(year, monthNumber - 1, week.startDay, week.endDay),
+        count: week.count
+      }));
+
+      return {
+        monthlyCount: monthBorrowers.length,
+        weeklyCounts
+      };
     },
   },
   methods: {
@@ -874,6 +990,9 @@ export default {
       
       alert(`Borrowers (${this.borrowers.length}):\n${borrowerInfo}\n\nRoom Requests (${this.roomRequests.length}):\n${roomInfo}`);
     },
+    toggleWeeklyVisibility() {
+      this.weeklyExpanded = !this.weeklyExpanded;
+    },
     manualQRInput() {
       const qrData = prompt('Enter QR code data (JSON format):');
       if (qrData) {
@@ -885,6 +1004,43 @@ export default {
           alert('Invalid JSON format. Please enter valid QR code data.');
         }
       }
+    },
+    normalizeToYMD(value) {
+      if (!value) return '';
+      if (value instanceof Date) {
+        return value.toISOString().split('T')[0];
+      }
+      if (typeof value === 'string') {
+        if (value.includes('T')) return value.split('T')[0];
+        if (value.includes(' ')) return value.split(' ')[0];
+        return value;
+      }
+      return '';
+    },
+    parseDateInput(value) {
+      if (!value) return null;
+      if (value instanceof Date) return value;
+      if (typeof value === 'string') {
+        const sanitized = value.includes('T') ? value : value.replace(' ', 'T');
+        const date = new Date(sanitized);
+        return Number.isNaN(date.getTime()) ? null : date;
+      }
+      return null;
+    },
+    getLongMonthLabel(year, monthIndex) {
+      const date = new Date(year, monthIndex, 1);
+      return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    },
+    getShortMonthLabel(year, monthIndex) {
+      const date = new Date(year, monthIndex, 1);
+      return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+    },
+    formatWeekRange(year, monthIndex, startDay, endDay) {
+      const monthLabel = this.getShortMonthLabel(year, monthIndex);
+      if (startDay === endDay) {
+        return `${monthLabel} ${startDay}`;
+      }
+      return `${monthLabel} ${startDay} - ${endDay}`;
     },
     // Enhanced Custom Alert Methods
     showCustomAlert(type, title, message, duration = 5000) {
@@ -1140,24 +1296,185 @@ export default {
 }
 
 .stats {
-  display: flex;
-  gap: 20px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
   margin-top: 20px;
-  flex-wrap: wrap;
 }
 
 .card {
   background: white;
   padding: 20px;
   border-radius: 10px;
-  flex: 1;
-  min-width: 150px;
   box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
 }
 
 .card span {
-  font-size: 24px;
+  font-size: 50px;
   color: #2ecc71;
+  line-height: 1;
+  margin-top: auto;
+}
+
+.card-header {
+  font-size: 14px;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.card-subtext {
+  margin-top: 8px;
+  display: block;
+  font-size: 12px;
+  color: #7f8c8d;
+  line-height: 1.4;
+}
+
+.borrower-card span {
+  font-size: 50px;
+  color: #007e3a;
+  line-height: 1;
+  margin-top: auto;
+}
+
+.weekly-card {
+  position: relative;
+  overflow: hidden;
+}
+
+/* Smaller toggle button */
+.weekly-toggle-btn {
+  margin-left: auto;
+  background: #eef6f0;
+  border: none;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #007e3a;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s;
+  flex-shrink: 0;
+}
+
+.weekly-toggle-btn:hover {
+  background: #dff0e3;
+  transform: scale(1.05);
+}
+
+.chevron-icon {
+  width: 14px;
+  height: 14px;
+  transition: transform 0.2s ease;
+}
+
+.chevron-icon.rotated {
+  transform: rotate(180deg);
+}
+
+/* Weekly tip smaller */
+.weekly-tip {
+  margin-top: 6px;
+  font-size: 11px;
+  color: #7f8c8d;
+  line-height: 1.4;
+}
+
+/* Weekly list compact - fits within card height */
+.weekly-list {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: calc(120px - 60px); /* Card height minus header/padding */
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.weekly-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.weekly-list::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 2px;
+}
+
+.weekly-list::-webkit-scrollbar-thumb {
+  background: #007e3a;
+  border-radius: 2px;
+}
+
+.weekly-list::-webkit-scrollbar-thumb:hover {
+  background: #005a2a;
+}
+
+.weekly-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 8px;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  background: #f9f9f9;
+  flex-shrink: 0;
+}
+
+.week-label {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #2c3e50;
+  line-height: 1.2;
+}
+
+.week-range {
+  margin: 1px 0 0 0;
+  font-size: 10px;
+  color: #7f8c8d;
+  line-height: 1.2;
+}
+
+/* Count size reduced */
+.week-count {
+  font-size: 1px;
+  font-weight: bold;
+  color: #007e3a;
+}
+
+/* Empty message smaller */
+.weekly-empty {
+  margin-top: 10px;
+  font-size: 12px;
+  color: #7f8c8d;
+}
+
+.muted {
+  color: #95a5a6;
+  font-size: 12px; /* smaller */
+}
+
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 
 .content {
@@ -1523,7 +1840,20 @@ export default {
     align-items: flex-start;
     gap: 10px;
   }
-  .stats, .content, .filter-search {
+  .stats {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .card {
+    min-height: 110px;
+  }
+
+  .weekly-list {
+    max-height: calc(110px - 60px);
+  }
+
+  .content, .filter-search {
     flex-direction: column;
   }
   .calendar, .schedule {

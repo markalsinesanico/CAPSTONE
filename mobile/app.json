@@ -3,6 +3,7 @@
     "name": "reservation",
     "slug": "reservation",
     "version": "1.0.0",
+    "sdkVersion": "54.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/logo.png",
     "userInterfaceStyle": "light",
@@ -21,13 +22,7 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "statusBarHidden": true,
-      "navigationBarHidden": true,
-      "softwareKeyboardLayoutMode": "pan",
-      "systemNavigationBarHidden": true,
-      "systemNavigationBarStyle": "light-content",
-      "systemNavigationBarColor": "transparent",
-      "immersive": true
+      "softwareKeyboardLayoutMode": "pan"
     },
     "web": {
       "favicon": "./assets/favicon.png"
